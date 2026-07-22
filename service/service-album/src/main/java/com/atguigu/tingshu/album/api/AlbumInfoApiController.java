@@ -4,15 +4,17 @@ import com.atguigu.tingshu.album.service.AlbumInfoService;
 import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.common.util.AuthContextHolder;
 import com.atguigu.tingshu.model.album.AlbumInfo;
+import com.atguigu.tingshu.query.album.AlbumInfoQuery;
 import com.atguigu.tingshu.vo.album.AlbumInfoVo;
+import com.atguigu.tingshu.vo.album.AlbumListVo;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @Tag(name = "专辑管理")
 @RestController
@@ -35,6 +37,25 @@ public class AlbumInfoApiController {
 		Long userId = AuthContextHolder.getUserId();
 		albumInfoService.saveAlbumInfo(albumInfoVo, userId);
 		return Result.ok();
+	}
+	/**
+	 * TODO 该接口登录才能访问
+	 * 查询当前用户专辑分页列表
+	 * @param page 页码
+	 * @param limit 页大小
+	 * @param albumInfoQuery 查询条件对象
+	 * @return
+	 */
+	@Operation(summary = "查询当前用户专辑分页列表")
+	@PostMapping("/albumInfo/findUserAlbumPage/{page}/{limit}")
+	public Result<Page<AlbumListVo>> findUserAlbumPage(@PathVariable Long page,
+													   @PathVariable Long limit,
+													   @RequestBody AlbumInfoQuery albumInfoQuery){
+		Long userId = AuthContextHolder.getUserId();
+		Page<AlbumListVo> pageParam = new Page<>(page, limit);
+		pageParam = albumInfoService.findUserAlbumPage(pageParam, albumInfoQuery, userId);
+		return Result.ok(pageParam);
+
 	}
 
 }
