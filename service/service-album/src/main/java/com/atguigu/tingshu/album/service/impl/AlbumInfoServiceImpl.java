@@ -131,4 +131,24 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
 		}
 		return albumInfo;
 	}
+
+	@Override
+	@Transactional(rollbackFor = Exception.class)
+	public void updateAlbumInfo(Long id, AlbumInfoVo albumInfoVo) {
+		AlbumInfo albumInfo = BeanUtil.copyProperties(albumInfoVo, AlbumInfo.class);
+		albumInfo.setId(id);
+		int row = albumInfoMapper.updateById(albumInfo);
+		if (row <= 0){
+			throw new GuiguException(400,"更新专辑信息失败");
+		}
+		if (CollUtil.isNotEmpty(albumInfo.getAlbumAttributeValueVoList())){
+			albumAttributeValueService.remove(Wrappers.lambdaQuery(AlbumAttributeValue.class).eq(AlbumAttributeValue::getAlbumId, id));
+			List<AlbumAttributeValue> albumAttributeValueList = albumInfo.getAlbumAttributeValueVoList().stream().map(albumAttributeValueVo -> {
+				BeanUtil.copyProperties(albumAttributeValueVo, AlbumAttributeValue.class);
+				albumAttributeValueVo.setAlbumId(id);
+				return albumAttributeValueVo;
+			}).collect(Collectors.toList());
+			albumAttributeValueService.saveBatch(albumAttributeValueList);
+		}
+	}
 }
