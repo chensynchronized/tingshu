@@ -2,6 +2,7 @@ package com.atguigu.tingshu.album.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.util.ObjectUtil;
 import com.atguigu.tingshu.album.mapper.AlbumAttributeValueMapper;
 import com.atguigu.tingshu.album.mapper.AlbumInfoMapper;
 import com.atguigu.tingshu.album.mapper.AlbumStatMapper;
@@ -118,5 +119,16 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
 		//4.删除专辑关联的统计信息
 		LambdaQueryWrapper<AlbumStat> albumStatLambdaQueryWrapper = Wrappers.lambdaQuery(AlbumStat.class).eq(AlbumStat::getAlbumId, id);
 		albumStatMapper.delete(albumStatLambdaQueryWrapper);
+	}
+
+	@Override
+	public AlbumInfo getAlbumInfo(Long id) {
+		AlbumInfo albumInfo = albumInfoMapper.selectById(id);
+		if (ObjectUtil.isNotEmpty(albumInfo)){
+			LambdaQueryWrapper<AlbumAttributeValue> wrapper = Wrappers.lambdaQuery(AlbumAttributeValue.class).eq(AlbumAttributeValue::getAlbumId, id);
+			List<AlbumAttributeValue> albumAttributeValueList = albumAttributeValueService.getBaseMapper().selectList(wrapper);
+			albumInfo.setAlbumAttributeValueVoList(albumAttributeValueList);
+		}
+		return albumInfo;
 	}
 }
