@@ -18,19 +18,21 @@
             max(if(stat.stat_type = '0402',stat.stat_num,0)) subscribeStatNum,
             max(if(stat.stat_type = '0403',stat.stat_num,0)) buyStatNum,
             max(if(stat.stat_type = '0404',stat.stat_num,0)) commentStatNum
-        from album_info ai inner join album_stat stat on stat.album_id = ai.id
+        from album_info ai left join album_stat stat on stat.album_id = ai.id
         <where>
+            stat.is_deleted = 0
+            and ai.is_deleted = 0
             <if test="albumInfoQuery.userId != null">
-                ai.user_id = #{albumInfoQuery.userId}
+                and ai.user_id = #{albumInfoQuery.userId}
             </if>
-            <if test="albumInfoQuery.status != null">
+            <if test="albumInfoQuery.status != null and albumInfoQuery.status !='' ">
                 and ai.status = #{albumInfoQuery.status}
             </if>
-            <if test="albumInfoQuery.albumTitle != null">
+            <if test="albumInfoQuery.albumTitle != null and albumInfoQuery.albumTitle !='' ">
                 and ai.album_title like concat('%',#{albumInfoQuery.albumTitle},'%')
             </if>
         </where>
-        and ai.is_deleted = 0
+
         group by ai.id
         order by ai.id desc
     </select>

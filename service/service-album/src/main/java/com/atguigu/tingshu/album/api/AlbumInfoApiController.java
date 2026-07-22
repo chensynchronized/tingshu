@@ -93,6 +93,18 @@ public class AlbumInfoApiController {
 		albumInfoService.updateAlbumInfo(id, albumInfoVo);
 		return Result.ok();
 	}
+	/**
+	 * TODO 该接口登录才能访问
+	 * 查询当前登录用户专辑列表
+	 * @return
+	 */
+	@Operation(summary = "查询当前登录用户专辑列表")
+	@GetMapping("/albumInfo/findUserAllAlbumList")
+	public Result<List<AlbumInfo>> findUserAllAlbumList(){
+		Long userId = AuthContextHolder.getUserId();
+		List<AlbumInfo> list = albumInfoService.findUserAllAlbumList(userId);
+		return Result.ok(list);
+	}
 
 }
 

@@ -151,4 +151,15 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
 			albumAttributeValueService.saveBatch(albumAttributeValueList);
 		}
 	}
+
+	@Override
+	public List<AlbumInfo> findUserAllAlbumList(Long userId) {
+		LambdaQueryWrapper<AlbumInfo> lambdaQueryWrapper = Wrappers.lambdaQuery(AlbumInfo.class)
+				.eq(AlbumInfo::getUserId, userId)
+				.select(AlbumInfo::getId, AlbumInfo::getAlbumTitle, AlbumInfo::getStatus)
+				.last("limit 50")
+				.orderByDesc(AlbumInfo::getId);
+		return albumInfoMapper.selectList(lambdaQueryWrapper);
+
+	}
 }
