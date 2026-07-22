@@ -7,13 +7,18 @@ import com.atguigu.tingshu.album.mapper.AlbumInfoMapper;
 import com.atguigu.tingshu.album.mapper.AlbumStatMapper;
 import com.atguigu.tingshu.album.service.AlbumAttributeValueService;
 import com.atguigu.tingshu.album.service.AlbumInfoService;
+import com.atguigu.tingshu.album.service.TrackInfoService;
 import com.atguigu.tingshu.common.constant.SystemConstant;
+import com.atguigu.tingshu.common.execption.GuiguException;
 import com.atguigu.tingshu.model.album.AlbumAttributeValue;
 import com.atguigu.tingshu.model.album.AlbumInfo;
 import com.atguigu.tingshu.model.album.AlbumStat;
+import com.atguigu.tingshu.model.album.TrackInfo;
 import com.atguigu.tingshu.query.album.AlbumInfoQuery;
 import com.atguigu.tingshu.vo.album.AlbumInfoVo;
 import com.atguigu.tingshu.vo.album.AlbumListVo;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
@@ -35,6 +40,8 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
 	private AlbumAttributeValueService albumAttributeValueService;
 	@Autowired
 	private AlbumStatMapper albumStatMapper;
+	@Autowired
+	private TrackInfoService trackInfoService;
 	/**
 	 * 保存专辑方法
 	 * 1.将提交专辑VO转为PO对象，新增专辑
@@ -92,5 +99,24 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
 
 		albumInfoQuery.setUserId(userId);
 		return albumInfoMapper.findUserAlbumPage(pageParam,albumInfoQuery);
+	}
+
+	@Override
+	@Transactional(rollbackFor = Exception.class)
+	public void removeAlbumInfo(Long id) {
+		//1.判断专辑下是否有声音，如果有声音则无法删除
+		LambdaQueryWrapper<TrackInfo> trackInfoLambdaQueryWrapper = Wrappers.lambdaQuery(TrackInfo.class).eq(TrackInfo::getAlbumId, id);
+		long count = trackInfoService.count(trackInfoLambdaQueryWrapper);
+		if (count>0){
+			throw new GuiguException(400,"专辑下有声音，无法删除");
+		}
+		//2.删除专辑
+		albumInfoMapper.deleteById(id);
+		//3.删除专辑关联的标签值
+		LambdaQueryWrapper<AlbumAttributeValue> albumAttributeValueLambdaQueryWrapper = Wrappers.lambdaQuery(AlbumAttributeValue.class).eq(AlbumAttributeValue::getAlbumId, id);
+		albumAttributeValueService.remove(albumAttributeValueLambdaQueryWrapper);
+		//4.删除专辑关联的统计信息
+		LambdaQueryWrapper<AlbumStat> albumStatLambdaQueryWrapper = Wrappers.lambdaQuery(AlbumStat.class).eq(AlbumStat::getAlbumId, id);
+		albumStatMapper.delete(albumStatLambdaQueryWrapper);
 	}
 }

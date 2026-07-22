@@ -57,6 +57,18 @@ public class AlbumInfoApiController {
 		return Result.ok(pageParam);
 
 	}
+	/**
+	 * TODO 该接口登录才能访问
+	 * 根据专辑ID删除专辑
+	 * @param id
+	 * @return
+	 */
+	@Operation(summary = "根据专辑ID删除专辑")
+	@DeleteMapping("/albumInfo/removeAlbumInfo/{id}")
+	public Result removeAlbumInfo(@PathVariable Long id){
+		albumInfoService.removeAlbumInfo(id);
+		return Result.ok();
+	}
 
 }
 
