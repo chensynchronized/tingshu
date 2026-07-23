@@ -1,7 +1,10 @@
 package com.atguigu.tingshu.album.service;
 
 import com.atguigu.tingshu.model.album.TrackInfo;
+import com.atguigu.tingshu.query.album.TrackInfoQuery;
 import com.atguigu.tingshu.vo.album.TrackInfoVo;
+import com.atguigu.tingshu.vo.album.TrackListVo;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 
 public interface TrackInfoService extends IService<TrackInfo> {
@@ -19,5 +22,11 @@ public interface TrackInfoService extends IService<TrackInfo> {
      * @param statNum 统计数值
      */
     void saveTrackStat(Long trackId, String statType, int statNum);
-
+    /**
+     * 获取当前登录声音分页列表
+     * @param pageInfo MP分页对象
+     * @param trackInfoQuery 查询声音条件对象
+     * @return
+     */
+    Page<TrackListVo> findUserTrackPage(Page<TrackListVo> pageInfo, TrackInfoQuery trackInfoQuery);
 }

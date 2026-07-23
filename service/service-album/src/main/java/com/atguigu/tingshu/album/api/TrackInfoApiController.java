@@ -4,15 +4,16 @@ import com.atguigu.tingshu.album.service.TrackInfoService;
 import com.atguigu.tingshu.album.service.VodService;
 import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.common.util.AuthContextHolder;
+import com.atguigu.tingshu.model.album.TrackInfo;
+import com.atguigu.tingshu.query.album.TrackInfoQuery;
 import com.atguigu.tingshu.vo.album.TrackInfoVo;
+import com.atguigu.tingshu.vo.album.TrackListVo;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
@@ -54,6 +55,27 @@ public class TrackInfoApiController {
 		Long userId = AuthContextHolder.getUserId();
 		trackInfoService.saveTrackInfo(userId,trackInfoVo);
 		return Result.ok();
+	}
+
+	/**
+	 * TODO 必须登录才可以访问
+	 * 获取当前登录声音分页列表
+	 *
+	 * @param page           页码
+	 * @param limit          页大小
+	 * @param trackInfoQuery 查询条件
+	 * @return
+	 */
+	@Operation(summary = "获取当前登录声音分页列表")
+	@PostMapping("/trackInfo/findUserTrackPage/{page}/{limit}")
+	public Result<Page<TrackListVo>> findUserTrackPage(@PathVariable Long page,
+													   @PathVariable Long limit,
+													   @RequestBody TrackInfoQuery trackInfoQuery){
+		Long userId = AuthContextHolder.getUserId();
+		trackInfoQuery.setUserId(userId);
+		Page<TrackListVo> pageInfo = new Page<>(page, limit);
+		pageInfo = trackInfoService.findUserTrackPage(pageInfo, trackInfoQuery);
+		return Result.ok(pageInfo);
 	}
 
 }
