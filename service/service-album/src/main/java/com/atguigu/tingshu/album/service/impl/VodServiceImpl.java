@@ -10,6 +10,7 @@ import com.qcloud.vod.VodUploadClient;
 import com.qcloud.vod.model.VodUploadRequest;
 import com.qcloud.vod.model.VodUploadResponse;
 import com.tencentcloudapi.common.Credential;
+import com.tencentcloudapi.common.exception.TencentCloudSDKException;
 import com.tencentcloudapi.vod.v20180717.VodClient;
 import com.tencentcloudapi.vod.v20180717.models.*;
 import lombok.extern.slf4j.Slf4j;
@@ -100,5 +101,26 @@ public class VodServiceImpl implements VodService {
             throw new GuiguException(400, "音频文件详情获取异常！");
         }
         return null;
+    }
+    /**
+     * 删除音频文件
+     *
+     * @param mediaFileId
+     */
+    @Override
+    public void deleteTrackMedia(String mediaFileId) {
+        try {
+            //1.实例化一个认证对象，入参需要传入腾讯云账户 SecretId 和 SecretKey，此处还需注意密钥对的保密
+            Credential cred = new Credential(vodConstantProperties.getSecretId(), vodConstantProperties.getSecretKey());
+            //2.实例化一个请求对象,每个接口都会对应一个request对象
+            DeleteMediaRequest req = new DeleteMediaRequest();
+            req.setFileId(mediaFileId);
+            //3.实例化要请求产品的client对象,clientProfile是可选的
+            VodClient client = new VodClient(cred, vodConstantProperties.getRegion());
+            //4.返回的resp是一个DeleteMediaResponse的实例，与请求对象对应
+            client.DeleteMedia(req);
+        } catch (TencentCloudSDKException e) {
+            log.info("[专辑服务]删除云点播文件：{}，失败{}", mediaFileId, e);
+        }
     }
 }

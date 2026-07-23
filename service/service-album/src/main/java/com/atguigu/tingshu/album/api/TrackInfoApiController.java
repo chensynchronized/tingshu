@@ -77,6 +77,32 @@ public class TrackInfoApiController {
 		pageInfo = trackInfoService.findUserTrackPage(pageInfo, trackInfoQuery);
 		return Result.ok(pageInfo);
 	}
+	/**
+	 * 根据声音ID查询声音信息
+	 *
+	 * @param id
+	 * @return
+	 */
+	@Operation(summary = "根据声音ID查询声音信息")
+	@GetMapping("/trackInfo/getTrackInfo/{id}")
+	public Result<TrackInfo> getTrackInfo(@PathVariable Long id){
+		TrackInfo trackInfo = trackInfoService.getById(id);
+		return Result.ok(trackInfo);
+	}
+	/**
+	 * TODO 该接口登录才可访问
+	 * 修改声音信息
+	 * @param id
+	 * @param trackInfoVo
+	 * @return
+	 */
+	@Operation(summary = "修改声音信息")
+	@PutMapping("/trackInfo/updateTrackInfo/{id}")
+	public Result updateTrackInfo(@PathVariable Long id,
+								  @RequestBody @Validated TrackInfoVo trackInfoVo){
+		trackInfoService.updateTrackInfo(id,trackInfoVo);
+		return Result.ok();
+	}
 
 }
 

@@ -29,4 +29,13 @@ public interface TrackInfoService extends IService<TrackInfo> {
      * @return
      */
     Page<TrackListVo> findUserTrackPage(Page<TrackListVo> pageInfo, TrackInfoQuery trackInfoQuery);
+    /**
+     * TODO 该接口登录才可访问
+     * 修改声音信息
+     * @param id
+     * @param trackInfoVo
+     * @return
+     */
+    void updateTrackInfo(Long id, TrackInfoVo trackInfoVo);
+
 }

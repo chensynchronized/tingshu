@@ -23,6 +23,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 
@@ -46,6 +47,7 @@ public class TrackInfoServiceImpl extends ServiceImpl<TrackInfoMapper, TrackInfo
 	 * @return
 	 */
 	@Override
+	@Transactional(rollbackFor = Exception.class)
 	public void saveTrackInfo(Long userId, TrackInfoVo trackInfoVo) {
 		//1.保存声音信息
 		TrackInfo trackInfo = BeanUtil.copyProperties(trackInfoVo, TrackInfo.class);
@@ -101,5 +103,27 @@ public class TrackInfoServiceImpl extends ServiceImpl<TrackInfoMapper, TrackInfo
 	@Override
 	public Page<TrackListVo> findUserTrackPage(Page<TrackListVo> pageInfo, TrackInfoQuery trackInfoQuery) {
 		return trackInfoMapper.findUserTrackPage(pageInfo, trackInfoQuery);
+	}
+
+	@Override
+	public void updateTrackInfo(Long id, TrackInfoVo trackInfoVo) {
+		//1.拷贝属性
+		TrackInfo trackInfo = BeanUtil.copyProperties(trackInfoVo, TrackInfo.class);
+		//2.判断音频文件是否变更
+		TrackInfo trackInfoOld = trackInfoMapper.selectById(id);
+		if (ObjectUtil.notEqual(trackInfoOld.getMediaFileId(), trackInfoVo.getMediaFileId())){
+			TrackMediaInfoVo trackMediaInfo = vodService.getTrackMediaInfo(trackInfoVo.getMediaFileId());
+			if (ObjectUtil.isNotEmpty(trackMediaInfo)){
+				trackInfo.setMediaSize(trackMediaInfo.getSize());
+				trackInfo.setMediaUrl(trackMediaInfo.getMediakUrl());
+				trackInfo.setMediaDuration(new BigDecimal(trackMediaInfo.getDuration()));
+				trackInfo.setMediaType(trackMediaInfo.getType());
+				vodService.deleteTrackMedia(trackInfoVo.getMediaFileId());
+			}
+
+		}
+		//3.更新声音信息
+		trackInfoMapper.updateById(trackInfo);
+
 	}
 }
