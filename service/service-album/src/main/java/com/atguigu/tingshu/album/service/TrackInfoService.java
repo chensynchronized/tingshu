@@ -37,5 +37,10 @@ public interface TrackInfoService extends IService<TrackInfo> {
      * @return
      */
     void updateTrackInfo(Long id, TrackInfoVo trackInfoVo);
-
+    /**
+     * 根据ID删除声音
+     * @param id 声音ID
+     * @return
+     */
+    void removeTrackInfo(Long id);
 }

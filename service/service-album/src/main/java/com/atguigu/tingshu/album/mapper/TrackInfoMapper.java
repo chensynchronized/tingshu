@@ -13,4 +13,6 @@ public interface TrackInfoMapper extends BaseMapper<TrackInfo> {
 
 
     Page<TrackListVo> findUserTrackPage(Page<TrackListVo> pageInfo, @Param("trackInfoQuery") TrackInfoQuery trackInfoQuery);
+
+    void updateTrackNum(@Param("albumId") Long albumId, @Param("orderNum") Integer orderNum);
 }

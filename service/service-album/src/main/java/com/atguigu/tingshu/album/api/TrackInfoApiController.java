@@ -103,6 +103,18 @@ public class TrackInfoApiController {
 		trackInfoService.updateTrackInfo(id,trackInfoVo);
 		return Result.ok();
 	}
+	/**
+	 * TODO 该接口登录才可访问
+	 * 根据ID删除声音
+	 * @param id
+	 * @return
+	 */
+	@Operation(summary = "根据ID删除声音")
+	@DeleteMapping("/trackInfo/removeTrackInfo/{id}")
+	public Result removeTrackInfo(@PathVariable Long id){
+		trackInfoService.removeTrackInfo(id);
+		return Result.ok();
+	}
 
 }
 

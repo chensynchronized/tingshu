@@ -123,7 +123,42 @@ public class TrackInfoServiceImpl extends ServiceImpl<TrackInfoMapper, TrackInfo
 
 		}
 		//3.更新声音信息
-		trackInfoMapper.updateById(trackInfo);
+		int update = trackInfoMapper.updateById(trackInfo);
+		if (update <= 0){
+			throw new GuiguException(400,"更新声音信息失败，请稍后再试");
+		}
 
+	}
+	/**
+	 * 根据ID删除声音
+	 * @param id 声音ID
+	 * @return
+	 */
+	@Override
+	@Transactional(rollbackFor = Exception.class)
+	public void removeTrackInfo(Long id) {
+		//1.根据声音id查询声音信息
+		TrackInfo trackInfo = trackInfoMapper.selectById(id);
+		//2.将比删除声音序号大的声音序号进行递减
+		trackInfoMapper.updateTrackNum(trackInfo.getAlbumId(), trackInfo.getOrderNum());
+		//3.删除声音
+		trackInfoMapper.deleteById(id);
+		//4.修改专辑包含的声音数量
+		AlbumInfo albumInfo = albumInfoService.getById(trackInfo.getAlbumId());
+		LambdaUpdateWrapper<AlbumInfo> updateWrapper = Wrappers.lambdaUpdate(AlbumInfo.class)
+				.set(AlbumInfo::getIncludeTrackCount, albumInfo.getIncludeTrackCount() - 1)
+				.eq(AlbumInfo::getId, trackInfo.getAlbumId());
+		boolean update = albumInfoService.update(updateWrapper);
+		if (!update){
+			throw new GuiguException(400,"更新专辑包含声音数量失败，请稍后再试");
+		}
+		//5.删除声音统计信息
+
+		int delete = trackStatMapper.delete(Wrappers.lambdaQuery(TrackStat.class).eq(TrackStat::getTrackId, id));
+		if (delete < 4){
+			throw new GuiguException(400,"删除声音统计信息失败，请稍后再试");
+		}
+		//6.删除声音媒体文件
+		vodService.deleteTrackMedia(trackInfo.getMediaFileId());
 	}
 }
