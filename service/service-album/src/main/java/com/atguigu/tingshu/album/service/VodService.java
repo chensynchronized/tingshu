@@ -1,5 +1,6 @@
 package com.atguigu.tingshu.album.service;
 
+import com.atguigu.tingshu.vo.album.TrackMediaInfoVo;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
@@ -11,4 +12,10 @@ public interface VodService {
      * @return {mediaFileId:"文件唯一标识",mediaUrl:"播放地址"}
      */
     Map<String, String> uploadTrack(MultipartFile file);
+    /**
+     * 根据云点播平台文件唯一标识，获取音频文件详情信息
+     * @param mediaFileId 文件唯一标识
+     * @return
+     */
+    TrackMediaInfoVo getTrackMediaInfo(String mediaFileId);
 }
