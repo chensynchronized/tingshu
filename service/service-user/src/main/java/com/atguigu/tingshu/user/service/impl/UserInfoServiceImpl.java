@@ -7,6 +7,8 @@ import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.ObjectUtil;
 import com.atguigu.tingshu.common.constant.KafkaConstant;
 import com.atguigu.tingshu.common.constant.RedisConstant;
+import com.atguigu.tingshu.common.login.GuiGuLogin;
+import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.common.service.KafkaService;
 import com.atguigu.tingshu.model.user.UserInfo;
 import com.atguigu.tingshu.user.mapper.UserInfoMapper;
@@ -15,10 +17,12 @@ import com.atguigu.tingshu.vo.user.UserInfoVo;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.PostMapping;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -71,4 +75,31 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
 			throw new RuntimeException(e);
 		}
 	}
+	/**
+	 * 获取用户信息
+	 * @param userId
+	 * @return
+	 */
+	@Override
+	public UserInfoVo getUserInfo(Long userId) {
+		UserInfo userInfo = userInfoMapper.selectById(userId);
+		UserInfoVo userInfoVo = BeanUtil.copyProperties(userInfo, UserInfoVo.class);
+		return userInfoVo;
+	}
+	/**
+	 * 修改用户基本信息（限定只能修改账户昵称、头像）
+	 *
+	 * @param userId
+	 * @param userInfoVo
+	 */
+	@Override
+	public void updateUser(Long userId, UserInfoVo userInfoVo) {
+		UserInfo userInfo = new UserInfo();
+		userInfo.setId(userId);
+		userInfo.setNickname(userInfoVo.getNickname());
+		userInfo.setAvatarUrl(userInfoVo.getAvatarUrl());
+		userInfoMapper.updateById(userInfo);
+
+	}
+
 }

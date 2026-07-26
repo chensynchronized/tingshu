@@ -1,6 +1,7 @@
 package com.atguigu.tingshu.user.service;
 
 import com.atguigu.tingshu.model.user.UserInfo;
+import com.atguigu.tingshu.vo.user.UserInfoVo;
 import com.baomidou.mybatisplus.extension.service.IService;
 
 import java.util.Map;
@@ -12,4 +13,16 @@ public interface UserInfoService extends IService<UserInfo> {
      * @return 对象，登录登录成功后：token
      */
     Map<String, String> wxLogin(String code);
+    /**
+     * 获取用户信息
+     * @param userId
+     * @return
+     */
+    UserInfoVo getUserInfo(Long userId);
+    /**
+     * 修改用户基本信息
+     * @param userId
+     * @param userInfoVo
+     */
+    void updateUser(Long userId, UserInfoVo userInfoVo);
 }
