@@ -87,4 +87,9 @@ public class BaseCategoryServiceImpl extends ServiceImpl<BaseCategory1Mapper, Ba
 
 
 	}
+
+	@Override
+	public BaseCategoryView getCategoryView(Long category3Id) {
+		return baseCategoryViewMapper.selectById(category3Id);
+	}
 }

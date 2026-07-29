@@ -102,4 +102,12 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
 
 	}
 
+	@Override
+	public UserInfoVo getUserInfoVoById(Long userId) {
+		UserInfo userInfo = userInfoMapper.selectById(userId);
+		UserInfoVo userInfoVo = BeanUtil.copyProperties(userInfo, UserInfoVo.class);
+		return userInfoVo;
+
+	}
+
 }
