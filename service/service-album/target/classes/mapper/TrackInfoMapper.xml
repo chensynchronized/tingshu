@@ -5,5 +5,41 @@
 <mapper namespace="com.atguigu.tingshu.album.mapper.TrackInfoMapper">
 
 
+    <select id="findUserTrackPage" resultType="com.atguigu.tingshu.vo.album.TrackListVo">
+        select
+            ti.album_id,
+            ai.album_title,
+            ti.id track_id,
+            ti.track_title,
+            ti.cover_url,
+            ti.media_duration,
+            ti.status,
+            max(if(ts.stat_type = '0401',ts.stat_num,0)) playStatNum,
+            max(if(ts.stat_type = '0402',ts.stat_num,0)) subscribeStatNum,
+            max(if(ts.stat_type = '0403',ts.stat_num,0)) buyStatNum,
+            max(if(ts.stat_type = '0404',ts.stat_num,0)) commentStatNum
+        from track_info ti left join track_stat ts on ti.id = ts.track_id
+                           left join album_info ai on ai.id = ti.album_id
+        <where>
+            ti.is_deleted = 0 and
+            ai.is_deleted = 0 and
+            ts.is_deleted = 0
+            <if test="trackInfoQuery.userId != null and trackInfoQuery.userId != ''" >
+                and  ti.user_id = #{trackInfoQuery.userId}
+            </if>
+            <if test="trackInfoQuery.status != null and trackInfoQuery.status != ''" >
+                and  ti.status = #{trackInfoQuery.status}
+            </if>
+            <if test="trackInfoQuery.trackTitle != null and trackInfoQuery.trackTitle != ''" >
+                and  ti.track_title = cancat('%',#{trackInfoQuery.trackTitle},'%')
+            </if>
+        </where>
+        group by ti.id
+        order by ti.id desc
+
+    </select>
+    <update id="updateTrackNum">
+        update track_info set order_num = order_num-1 where album_id = #{albumId} and order_num > #{orderNum} and is_deleted = 0
+    </update>
 </mapper>
 

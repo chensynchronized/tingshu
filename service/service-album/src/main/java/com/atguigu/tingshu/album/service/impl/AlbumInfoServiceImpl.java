@@ -6,6 +6,7 @@ import cn.hutool.core.util.ObjectUtil;
 import com.atguigu.tingshu.album.mapper.AlbumAttributeValueMapper;
 import com.atguigu.tingshu.album.mapper.AlbumInfoMapper;
 import com.atguigu.tingshu.album.mapper.AlbumStatMapper;
+import com.atguigu.tingshu.album.mapper.TrackInfoMapper;
 import com.atguigu.tingshu.album.service.AlbumAttributeValueService;
 import com.atguigu.tingshu.album.service.AlbumInfoService;
 import com.atguigu.tingshu.album.service.TrackInfoService;
@@ -42,7 +43,7 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
 	@Autowired
 	private AlbumStatMapper albumStatMapper;
 	@Autowired
-	private TrackInfoService trackInfoService;
+	private TrackInfoMapper trackInfoMapper;
 	/**
 	 * 保存专辑方法
 	 * 1.将提交专辑VO转为PO对象，新增专辑
@@ -107,7 +108,7 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
 	public void removeAlbumInfo(Long id) {
 		//1.判断专辑下是否有声音，如果有声音则无法删除
 		LambdaQueryWrapper<TrackInfo> trackInfoLambdaQueryWrapper = Wrappers.lambdaQuery(TrackInfo.class).eq(TrackInfo::getAlbumId, id);
-		long count = trackInfoService.count(trackInfoLambdaQueryWrapper);
+		long count = trackInfoMapper.selectCount(trackInfoLambdaQueryWrapper);
 		if (count>0){
 			throw new GuiguException(400,"专辑下有声音，无法删除");
 		}
