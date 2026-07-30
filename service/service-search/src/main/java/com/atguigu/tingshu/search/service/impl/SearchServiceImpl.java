@@ -97,4 +97,9 @@ public class SearchServiceImpl implements SearchService {
         //6.写入索引库
         albumInfoIndexRepository.save(albumInfoIndex);
     }
+
+    @Override
+    public void lowerAlbum(Long albumId) {
+        albumInfoIndexRepository.deleteById(albumId);
+    }
 }

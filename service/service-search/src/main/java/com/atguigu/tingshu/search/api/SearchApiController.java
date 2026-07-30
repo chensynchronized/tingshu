@@ -30,6 +30,17 @@ public class SearchApiController {
         searchService.upperAlbum(albumId);
         return Result.ok();
     }
+    /**
+     * 下架专辑-删除文档
+     * @param albumId
+     * @return
+     */
+    @Operation(summary = "该接口仅用于测试-下架专辑-删除文档")
+    @GetMapping("/albumInfo/lowerAlbum/{albumId}")
+    public Result lowerAlbum(@PathVariable Long albumId){
+        searchService.lowerAlbum(albumId);
+        return Result.ok();
+    }
 
 }
 
