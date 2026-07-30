@@ -10,8 +10,10 @@ import com.atguigu.tingshu.album.mapper.TrackInfoMapper;
 import com.atguigu.tingshu.album.service.AlbumAttributeValueService;
 import com.atguigu.tingshu.album.service.AlbumInfoService;
 import com.atguigu.tingshu.album.service.TrackInfoService;
+import com.atguigu.tingshu.common.constant.KafkaConstant;
 import com.atguigu.tingshu.common.constant.SystemConstant;
 import com.atguigu.tingshu.common.execption.GuiguException;
+import com.atguigu.tingshu.common.service.KafkaService;
 import com.atguigu.tingshu.model.album.AlbumAttributeValue;
 import com.atguigu.tingshu.model.album.AlbumInfo;
 import com.atguigu.tingshu.model.album.AlbumStat;
@@ -44,6 +46,9 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
 	private AlbumStatMapper albumStatMapper;
 	@Autowired
 	private TrackInfoMapper trackInfoMapper;
+	@Autowired
+	private KafkaService kafkaService;
+
 	/**
 	 * 保存专辑方法
 	 * 1.将提交专辑VO转为PO对象，新增专辑
@@ -66,6 +71,7 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
 		albumInfo.setIncludeTrackCount(0);
 		albumInfo.setIsFinished("0");
 		albumInfo.setStatus(SystemConstant.ALBUM_STATUS_PASS);
+		albumInfo.setIsOpen("1");
 		albumInfoMapper.insert(albumInfo);
 
 		//2.保存专辑标签值信息
@@ -84,6 +90,11 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
 		this.saveAlbumStat(albumInfo.getId(),SystemConstant.ALBUM_STAT_SUBSCRIBE,0);
 		this.saveAlbumStat(albumInfo.getId(),SystemConstant.ALBUM_STAT_BUY,0);
 		this.saveAlbumStat(albumInfo.getId(),SystemConstant.ALBUM_STAT_COMMENT,0);
+
+		//5.审核通过后发送上架专辑消息到Kafka
+		if ("1".equals(albumInfo.getIsOpen())) {
+			kafkaService.sendMessage(KafkaConstant.QUEUE_ALBUM_UPPER, albumInfo.getId().toString());
+		}
 
 	}
 
@@ -120,6 +131,7 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
 		//4.删除专辑关联的统计信息
 		LambdaQueryWrapper<AlbumStat> albumStatLambdaQueryWrapper = Wrappers.lambdaQuery(AlbumStat.class).eq(AlbumStat::getAlbumId, id);
 		albumStatMapper.delete(albumStatLambdaQueryWrapper);
+		kafkaService.sendMessage(KafkaConstant.QUEUE_ALBUM_LOWER, id.toString());
 	}
 
 	@Override
@@ -150,6 +162,12 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
 				return albumAttributeValueVo;
 			}).collect(Collectors.toList());
 			albumAttributeValueService.saveBatch(albumAttributeValueList);
+		}
+		String isOpen = albumInfo.getIsOpen();
+		if ("1".equals(isOpen)){
+			kafkaService.sendMessage(KafkaConstant.QUEUE_ALBUM_UPPER, albumInfo.getId().toString());
+		}else{
+			kafkaService.sendMessage(KafkaConstant.QUEUE_ALBUM_LOWER, albumInfo.getId().toString());
 		}
 	}
 
