@@ -6,6 +6,7 @@ import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.lang.Assert;
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.RandomUtil;
+import cn.hutool.extra.pinyin.PinyinUtil;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.FieldValue;
 import co.elastic.clients.elasticsearch._types.SortOrder;
@@ -19,14 +20,17 @@ import co.elastic.clients.elasticsearch.core.search.Hit;
 import co.elastic.clients.json.JsonData;
 import com.alibaba.fastjson.JSON;
 import com.atguigu.tingshu.album.AlbumFeignClient;
+import com.atguigu.tingshu.common.util.PinYinUtils;
 import com.atguigu.tingshu.model.album.AlbumAttributeValue;
 import com.atguigu.tingshu.model.album.AlbumInfo;
 import com.atguigu.tingshu.model.album.BaseCategory3;
 import com.atguigu.tingshu.model.album.BaseCategoryView;
 import com.atguigu.tingshu.model.search.AlbumInfoIndex;
 import com.atguigu.tingshu.model.search.AttributeValueIndex;
+import com.atguigu.tingshu.model.search.SuggestIndex;
 import com.atguigu.tingshu.query.search.AlbumIndexQuery;
 import com.atguigu.tingshu.search.repository.AlbumInfoIndexRepository;
+import com.atguigu.tingshu.search.repository.SuggestIndexRepository;
 import com.atguigu.tingshu.search.service.SearchService;
 import com.atguigu.tingshu.user.client.UserFeignClient;
 import com.atguigu.tingshu.vo.search.AlbumInfoIndexVo;
@@ -34,6 +38,7 @@ import com.atguigu.tingshu.vo.search.AlbumSearchResponseVo;
 import com.atguigu.tingshu.vo.user.UserInfoVo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.elasticsearch.core.suggest.Completion;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -59,11 +64,27 @@ public class SearchServiceImpl implements SearchService {
     private ThreadPoolExecutor threadPoolExecutor;
     @Autowired
     private ElasticsearchClient elasticsearchClient;
+    @Autowired
+    private SuggestIndexRepository suggestIndexRepository;
 
 
 
     private static final String INDEX_NAME = "albuminfo";
-
+    /**
+     * 新增提词记录到提词索引库
+     *
+     * @param albumInfoIndex
+     */
+    @Override
+    public void saveSuggestIndex(AlbumInfoIndex albumInfoIndex){
+        SuggestIndex suggestIndex = new SuggestIndex();
+        suggestIndex.setId(albumInfoIndex.getId().toString());
+        suggestIndex.setTitle(albumInfoIndex.getAlbumTitle());
+        suggestIndex.setKeyword(new Completion(new String[]{suggestIndex.getTitle()}));
+        suggestIndex.setKeywordPinyin(new Completion(new String[]{PinyinUtil.getPinyin(albumInfoIndex.getAlbumTitle(),"")}));
+        suggestIndex.setKeywordSequence(new Completion(new String[]{PinyinUtil.getFirstLetter(albumInfoIndex.getAlbumTitle(),"")}));
+        suggestIndexRepository.save(suggestIndex);
+    }
     @Override
     public void upperAlbum(Long albumId) {
         AlbumInfoIndex albumInfoIndex = new AlbumInfoIndex();
@@ -121,6 +142,7 @@ public class SearchServiceImpl implements SearchService {
         CompletableFuture.allOf(albumInfoCompletableFuture,categoryCompletableFuture, userCompletableFuture, scoreCompletableFuture).join();
         //6.写入索引库
         albumInfoIndexRepository.save(albumInfoIndex);
+        this.saveSuggestIndex(albumInfoIndex);
     }
 
     @Override

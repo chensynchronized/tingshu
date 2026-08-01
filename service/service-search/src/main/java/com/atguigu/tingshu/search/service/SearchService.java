@@ -12,6 +12,8 @@ import java.util.List;
 public interface SearchService {
 
 
+    void saveSuggestIndex(AlbumInfoIndex albumInfoIndex);
+
     void upperAlbum(Long albumId);
 
     void lowerAlbum(Long albumId);
