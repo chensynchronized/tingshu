@@ -63,6 +63,16 @@ public class SearchApiController {
     public Result<List<HashMap<String,Object>>> getTopCategory3HotAlbumList(@PathVariable Long category1Id){
         return Result.ok(searchService.getTopCategory3HotAlbumList(category1Id));
     }
+    /**
+     * 根据用户录入部分关键字进行自动补全
+     * @param keyword
+     * @return
+     */
+    @Operation(summary = "根据用户录入部分关键字进行自动补全")
+    @GetMapping("/albumInfo/completeSuggest/{keyword}")
+    public Result<List<String>> completeSuggest(@PathVariable String keyword){
+        return Result.ok(searchService.completeSuggest(keyword));
+    }
 
 }
 

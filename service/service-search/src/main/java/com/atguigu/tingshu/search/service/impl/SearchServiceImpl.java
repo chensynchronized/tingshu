@@ -16,7 +16,9 @@ import co.elastic.clients.elasticsearch._types.aggregations.LongTermsBucket;
 import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
+import co.elastic.clients.elasticsearch.core.search.CompletionSuggestOption;
 import co.elastic.clients.elasticsearch.core.search.Hit;
+import co.elastic.clients.elasticsearch.core.search.Suggestion;
 import co.elastic.clients.json.JsonData;
 import com.alibaba.fastjson.JSON;
 import com.atguigu.tingshu.album.AlbumFeignClient;
@@ -42,9 +44,7 @@ import org.springframework.data.elasticsearch.core.suggest.Completion;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.stream.Collectors;
@@ -70,6 +70,8 @@ public class SearchServiceImpl implements SearchService {
 
 
     private static final String INDEX_NAME = "albuminfo";
+    //建议词词库
+    private static final String SUCCEST_INDEX_NAME = "suggestinfo";
     /**
      * 新增提词记录到提词索引库
      *
@@ -323,5 +325,55 @@ public class SearchServiceImpl implements SearchService {
         }
         return null;
 
+    }
+
+    @Override
+    public List<String> completeSuggest(String keyword) {
+
+        try{
+            //1.查询题词索引库
+            SearchResponse<SuggestIndex> searchResponse = elasticsearchClient.search(s->s.index(SUCCEST_INDEX_NAME)
+                            .suggest(su->su.suggesters("mySuggestKeyword",s1->s1.prefix(keyword).completion(c->c.field("keyword").size(10).skipDuplicates(true)))
+                                    .suggesters("mySuggestPinyin",s1->s1.prefix(keyword).completion(c->c.field("keywordPinyin").size(10).skipDuplicates(true)))
+                                    .suggesters("mySuggestSequence",s1->s1.prefix(keyword).completion(c->c.field("keywordSequence").size(10).skipDuplicates(true))))
+                    ,SuggestIndex.class);
+            //2.解析建议词响应结果，将结果进行去重
+            Set<String> hashSet = new HashSet<>();
+            hashSet.addAll(this.parseSuggestResult("mySuggestKeyword", searchResponse));
+            hashSet.addAll(this.parseSuggestResult("mySuggestPinyin", searchResponse));
+            hashSet.addAll(this.parseSuggestResult("mySuggestSequence", searchResponse));
+            if (hashSet.size() >= 10) {
+                return new ArrayList<>(hashSet).subList(0, 10);
+            }
+            //3.如果建议词记录数小于10，采用全文查询专辑索引库尝试补全
+            SearchResponse<AlbumInfoIndex> infoIndexSearchResponse = elasticsearchClient.search(s -> s.index(INDEX_NAME)
+                            .query(q -> q.match(m -> m.field("title").query(keyword)))
+                    , AlbumInfoIndex.class);
+            //4.解析检索结果，将结果放入HashSet
+            List<Hit<AlbumInfoIndex>> hits = infoIndexSearchResponse.hits().hits();
+            if (CollUtil.isNotEmpty(hits)) {
+                hits.forEach(hit -> hashSet.add(hit.source().getAlbumTitle()));
+            }
+            return new ArrayList<>(hashSet);
+        }catch (Exception e){
+            log.error("[搜索服务]建议词自动补全异常：{}", e);
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public Collection<String> parseSuggestResult(String suggestName, SearchResponse<SuggestIndex> searchResponse) {
+        //1.获取指定自定义建议词名称获取建议结果
+        List<Suggestion<SuggestIndex>> suggestionList = searchResponse.suggest().get(suggestName);
+        //2.获取建议自动补全对象
+        List<String> list = new ArrayList<>();
+        suggestionList.forEach(suggestIndexSuggestion -> {
+            //3.获取options中自动补全结果
+            for (CompletionSuggestOption<SuggestIndex> suggestOption : suggestIndexSuggestion.completion().options()) {
+                SuggestIndex suggestIndex = suggestOption.source();
+                list.add(suggestIndex.getTitle());
+            }
+        });
+        return list;
     }
 }
