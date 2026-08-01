@@ -1,12 +1,13 @@
 package com.atguigu.tingshu.album.service.impl;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.ObjectUtil;
 import com.alibaba.fastjson.JSONObject;
 import com.atguigu.tingshu.album.mapper.*;
 import com.atguigu.tingshu.album.service.BaseCategoryService;
-import com.atguigu.tingshu.model.album.BaseAttribute;
-import com.atguigu.tingshu.model.album.BaseCategory1;
-import com.atguigu.tingshu.model.album.BaseCategoryView;
+import com.atguigu.tingshu.model.album.*;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -91,5 +92,23 @@ public class BaseCategoryServiceImpl extends ServiceImpl<BaseCategory1Mapper, Ba
 	@Override
 	public BaseCategoryView getCategoryView(Long category3Id) {
 		return baseCategoryViewMapper.selectById(category3Id);
+	}
+
+	@Override
+	public List<BaseCategory3> findTopBaseCategory3(Long category1Id) {
+		//1.根据一级分类id查询二级分类集合
+		LambdaQueryWrapper<BaseCategory2> queryWrapper = Wrappers.lambdaQuery(BaseCategory2.class).eq(BaseCategory2::getCategory1Id, category1Id);
+		List<BaseCategory2> baseCategory2List = baseCategory2Mapper.selectList(queryWrapper);
+		//2.根据二级分类集合查询置顶的三级分类集合
+		if (CollUtil.isNotEmpty(baseCategory2List)){
+			List<Long> category2Ids = baseCategory2List.stream().map(BaseCategory2::getId).collect(Collectors.toList());
+			LambdaQueryWrapper<BaseCategory3> queryWrapper1 = Wrappers.lambdaQuery(BaseCategory3.class)
+					.in(BaseCategory3::getCategory2Id, category2Ids)
+					.orderByAsc(BaseCategory3::getId)
+					.eq(BaseCategory3::getIsTop,1)
+					.last("limit 7");
+			return baseCategory3Mapper.selectList(queryWrapper1);
+		}
+		return null;
 	}
 }
