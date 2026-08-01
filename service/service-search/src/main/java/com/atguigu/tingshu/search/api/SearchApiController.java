@@ -10,6 +10,10 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 @Tag(name = "搜索专辑管理")
 @RestController
 @RequestMapping("api/search")
@@ -53,6 +57,11 @@ public class SearchApiController {
     public Result<AlbumSearchResponseVo> search(@RequestBody AlbumIndexQuery albumIndexQuery){
         AlbumSearchResponseVo vo = searchService.search(albumIndexQuery);
         return Result.ok(vo);
+    }
+    @Operation(summary = "查询1级分类下置顶3级分类下包含分类热门专辑")
+    @GetMapping("albumInfo/channel/{category1Id}")
+    public Result<List<HashMap<String,Object>>> getTopCategory3HotAlbumList(@PathVariable Long category1Id){
+        return Result.ok(searchService.getTopCategory3HotAlbumList(category1Id));
     }
 
 }

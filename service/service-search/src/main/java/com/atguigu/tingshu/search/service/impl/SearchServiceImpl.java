@@ -7,15 +7,21 @@ import cn.hutool.core.lang.Assert;
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.RandomUtil;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.FieldValue;
 import co.elastic.clients.elasticsearch._types.SortOrder;
+import co.elastic.clients.elasticsearch._types.aggregations.Aggregate;
+import co.elastic.clients.elasticsearch._types.aggregations.Buckets;
+import co.elastic.clients.elasticsearch._types.aggregations.LongTermsBucket;
 import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
+import co.elastic.clients.json.JsonData;
+import com.alibaba.fastjson.JSON;
 import com.atguigu.tingshu.album.AlbumFeignClient;
-import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.model.album.AlbumAttributeValue;
 import com.atguigu.tingshu.model.album.AlbumInfo;
+import com.atguigu.tingshu.model.album.BaseCategory3;
 import com.atguigu.tingshu.model.album.BaseCategoryView;
 import com.atguigu.tingshu.model.search.AlbumInfoIndex;
 import com.atguigu.tingshu.model.search.AttributeValueIndex;
@@ -31,6 +37,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -52,6 +59,7 @@ public class SearchServiceImpl implements SearchService {
     private ThreadPoolExecutor threadPoolExecutor;
     @Autowired
     private ElasticsearchClient elasticsearchClient;
+
 
 
     private static final String INDEX_NAME = "albuminfo";
@@ -245,5 +253,53 @@ public class SearchServiceImpl implements SearchService {
         }
 
         return vo;
+    }
+    /**
+     * 查询1级分类下置顶3级分类下包含分类热门专辑
+     *
+     * @param category1Id
+     * @return
+     */
+    @Override
+    public List<HashMap<String, Object>> getTopCategory3HotAlbumList(Long category1Id) {
+        try{
+            //1.根据1级分类ID远程调用专辑服务获取置顶前7个三级分类集合
+            List<BaseCategory3> baseCategory3List = albumFeignClient.findTopBaseCategory3(category1Id).getData();
+            if (CollUtil.isNotEmpty(baseCategory3List)){
+                List<Long> category3Ids = baseCategory3List.stream().map(BaseCategory3::getId).collect(Collectors.toList());
+                Map<Long, BaseCategory3> category3Map = baseCategory3List.stream().collect(Collectors.toMap(BaseCategory3::getId, c -> c));
+                List<FieldValue> fieldValueList = category3Ids.stream().map(id -> FieldValue.of(id)).collect(Collectors.toList());
+                //2.检索ES获取置顶三级分类（7个）不同置顶三级分类下热度前6个的专辑列表
+                SearchResponse<AlbumInfoIndex> searchResponse = elasticsearchClient.search(s -> s.index(INDEX_NAME)
+                        .size(10)
+                        .query(q->q.terms(t->t.field("category3Id").terms(th->th.value(fieldValueList))))
+                        .aggregations("category3Agg",a->a.terms(t->t.field("category3Id").size(10)).aggregations("top6Agg",al->al.topHits(th->th.size(6).sort(sort->sort.field(f->f.field("hotScore").order(SortOrder.Desc))))))
+                        , AlbumInfoIndex.class);
+                //3.解析ES响应聚合
+                Aggregate category3Agg = searchResponse.aggregations().get("category3Agg");
+                Buckets<LongTermsBucket> buckets = category3Agg.lterms().buckets();
+                List<LongTermsBucket> bucketList = buckets.array();
+                if(CollUtil.isNotEmpty(bucketList)){
+                    List<HashMap<String, Object>> result = bucketList.stream().map(bucket -> {
+                        HashMap<String, Object> hashMap = new HashMap<>();
+                        hashMap.put("baseCategory3", category3Map.get(bucket.key()));
+                        Aggregate top6Agg = bucket.aggregations().get("top6Agg");
+                        List<AlbumInfoIndex> albumInfoIndexList = top6Agg.topHits().hits().hits().stream().map(hit -> {
+                            JsonData source = hit.source();
+                            return JSON.parseObject(source.toString(), AlbumInfoIndex.class);
+                        }).collect(Collectors.toList());
+                        hashMap.put("list", albumInfoIndexList);
+                        return hashMap;
+                    }).collect(Collectors.toList());
+                    return result;
+                }
+            }
+
+        }catch (Exception e){
+            log.error("[检索服务]首页热门专辑异常：{}", e);
+            throw new RuntimeException(e);
+        }
+        return null;
+
     }
 }

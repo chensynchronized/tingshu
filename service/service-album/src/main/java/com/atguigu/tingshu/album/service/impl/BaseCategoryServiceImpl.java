@@ -111,4 +111,36 @@ public class BaseCategoryServiceImpl extends ServiceImpl<BaseCategory1Mapper, Ba
 		}
 		return null;
 	}
+
+	@Override
+	public JSONObject getBaseCategoryListByCategory1Id(Long category1Id) {
+		LambdaQueryWrapper<BaseCategoryView> queryWrapper = Wrappers.lambdaQuery(BaseCategoryView.class).eq(BaseCategoryView::getCategory1Id, category1Id);
+		List<BaseCategoryView> baseCategoryViewList = baseCategoryViewMapper.selectList(queryWrapper);
+		JSONObject jsonObject = new JSONObject();
+		if (CollUtil.isNotEmpty(baseCategoryViewList)){
+			jsonObject.put("categoryId", baseCategoryViewList.get(0).getCategory1Id());
+			jsonObject.put("categoryName", baseCategoryViewList.get(0).getCategory1Name());
+			ArrayList<JSONObject> category1child = new ArrayList<>();
+			Map<Long, List<BaseCategoryView>> category2Map = baseCategoryViewList.stream().collect(Collectors.groupingBy(c -> c.getCategory2Id(), Collectors.toList()));
+			for (Map.Entry<Long, List<BaseCategoryView>> entry:category2Map.entrySet()){
+				JSONObject jsonOnject2 = new JSONObject();
+				jsonOnject2.put("categoryId", entry.getKey());
+				List<BaseCategoryView> category2value = entry.getValue();
+				if (CollUtil.isNotEmpty(category2value)){
+					jsonOnject2.put("categoryName", category2value.get(0).getCategory2Name());
+					ArrayList<JSONObject> category2child = new ArrayList<>();
+					for (BaseCategoryView baseCategoryView:category2value){
+						JSONObject jsonObject3 = new JSONObject();
+						jsonObject3.put("categoryId", baseCategoryView.getCategory3Id());
+						jsonObject3.put("categoryName", baseCategoryView.getCategory3Name());
+						category2child.add(jsonObject3);
+					}
+					jsonOnject2.put("categoryChild", category2child);
+				}
+				category1child.add(jsonOnject2);
+			}
+			jsonObject.put("categoryChild", category1child);
+		}
+		return jsonObject;
+	}
 }

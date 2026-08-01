@@ -67,6 +67,18 @@ public class BaseCategoryApiController {
 		return Result.ok(list);
 	}
 
+	/**
+	 * 根据1级分类对象查询包含二级分类（包含三级分类）
+	 * @param category1Id
+	 * @return
+	 */
+	@Operation(summary = "根据1级分类对象查询包含二级分类（包含三级分类）")
+	@GetMapping("/category/getBaseCategoryList/{category1Id}")
+	public Result<JSONObject> getBaseCategoryListByCategory1Id(@PathVariable Long category1Id){
+		JSONObject jsonObject = baseCategoryService.getBaseCategoryListByCategory1Id(category1Id);
+		return Result.ok(jsonObject);
+	}
+
 
 
 
