@@ -1,14 +1,14 @@
 package com.atguigu.tingshu.search.api;
 
+import co.elastic.clients.elasticsearch.core.SearchResponse;
 import com.atguigu.tingshu.common.result.Result;
+import com.atguigu.tingshu.query.search.AlbumIndexQuery;
 import com.atguigu.tingshu.search.service.SearchService;
+import com.atguigu.tingshu.vo.search.AlbumSearchResponseVo;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "搜索专辑管理")
 @RestController
@@ -40,6 +40,19 @@ public class SearchApiController {
     public Result lowerAlbum(@PathVariable Long albumId){
         searchService.lowerAlbum(albumId);
         return Result.ok();
+    }
+
+    /**
+     * 站内检索，支持关键字、分类、标签条件分页检索，结果高亮
+     *
+     * @param albumIndexQuery
+     * @return
+     */
+    @Operation(summary = "站内检索，支持关键字、分类、标签条件分页检索，结果高亮")
+    @PostMapping("/albumInfo")
+    public Result<AlbumSearchResponseVo> search(@RequestBody AlbumIndexQuery albumIndexQuery){
+        AlbumSearchResponseVo vo = searchService.search(albumIndexQuery);
+        return Result.ok(vo);
     }
 
 }

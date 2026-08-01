@@ -2,8 +2,16 @@ package com.atguigu.tingshu.search.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.lang.Assert;
+import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.RandomUtil;
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.SortOrder;
+import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
+import co.elastic.clients.elasticsearch.core.SearchRequest;
+import co.elastic.clients.elasticsearch.core.SearchResponse;
+import co.elastic.clients.elasticsearch.core.search.Hit;
 import com.atguigu.tingshu.album.AlbumFeignClient;
 import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.model.album.AlbumAttributeValue;
@@ -11,9 +19,12 @@ import com.atguigu.tingshu.model.album.AlbumInfo;
 import com.atguigu.tingshu.model.album.BaseCategoryView;
 import com.atguigu.tingshu.model.search.AlbumInfoIndex;
 import com.atguigu.tingshu.model.search.AttributeValueIndex;
+import com.atguigu.tingshu.query.search.AlbumIndexQuery;
 import com.atguigu.tingshu.search.repository.AlbumInfoIndexRepository;
 import com.atguigu.tingshu.search.service.SearchService;
 import com.atguigu.tingshu.user.client.UserFeignClient;
+import com.atguigu.tingshu.vo.search.AlbumInfoIndexVo;
+import com.atguigu.tingshu.vo.search.AlbumSearchResponseVo;
 import com.atguigu.tingshu.vo.user.UserInfoVo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +32,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.stream.Collectors;
@@ -38,6 +50,11 @@ public class SearchServiceImpl implements SearchService {
     private AlbumInfoIndexRepository albumInfoIndexRepository;
     @Autowired
     private ThreadPoolExecutor threadPoolExecutor;
+    @Autowired
+    private ElasticsearchClient elasticsearchClient;
+
+
+    private static final String INDEX_NAME = "albuminfo";
 
     @Override
     public void upperAlbum(Long albumId) {
@@ -101,5 +118,132 @@ public class SearchServiceImpl implements SearchService {
     @Override
     public void lowerAlbum(Long albumId) {
         albumInfoIndexRepository.deleteById(albumId);
+    }
+
+    @Override
+    public AlbumSearchResponseVo search(AlbumIndexQuery albumIndexQuery) {
+        try{
+            //1.构建请求对象
+            SearchRequest searchRequest = this.buildDSL(albumIndexQuery);
+            //2.调用es客户端查询
+            SearchResponse<AlbumInfoIndex> search = elasticsearchClient.search(searchRequest, AlbumInfoIndex.class);
+            //3.解析结果
+            return this.parseResult(search, albumIndexQuery);
+        }catch (Exception e){
+            log.error("[搜索服务]查询条件：{}，站内检索异常：{}", albumIndexQuery, e);
+            throw new RuntimeException(e);
+        }
+
+
+    }
+
+    @Override
+    public SearchRequest buildDSL(AlbumIndexQuery albumIndexQuery) {
+        //1.创建检索请求构建器对象-封装检索索引库 及 所有检索DSL语句
+        SearchRequest.Builder searchBuilder = new SearchRequest.Builder();
+        searchBuilder.index(INDEX_NAME);
+        //2.设置请求体参数"query",处理查询条件（关键字、分类、标签）
+        //2.1 创建最外层bool组合条件对象
+        BoolQuery.Builder boolQuery = new BoolQuery.Builder();
+        //2.2 处理关键字查询条件 采用must必须满足，包含bool组合三个子条件，三个子条件或者关系
+        String keyword = albumIndexQuery.getKeyword();
+        if(ObjectUtil.isNotEmpty(keyword)){
+            BoolQuery.Builder keywordBoolQuery = new BoolQuery.Builder();
+            keywordBoolQuery.should(s->s.match(m->m.field("albumTitle").query(keyword)));
+            keywordBoolQuery.should(s->s.match(m->m.field("albumAuthor").query(keyword)));
+            keywordBoolQuery.should(s->s.term(t->t.field("announcerName").value(keyword)));
+            boolQuery.must(keywordBoolQuery.build()._toQuery());
+        }
+        //2.3 处理分类ID查询条件
+        if (ObjectUtil.isNotEmpty(albumIndexQuery.getCategory1Id())){
+            boolQuery.filter(f->f.term(t->t.field("category1Id").value(albumIndexQuery.getCategory1Id())));
+        }
+        if (ObjectUtil.isNotEmpty(albumIndexQuery.getCategory2Id())){
+            boolQuery.filter(f->f.term(t->t.field("category2Id").value(albumIndexQuery.getCategory2Id())));
+        }
+        if (ObjectUtil.isNotEmpty(albumIndexQuery.getCategory3Id())){
+            boolQuery.filter(f->f.term(t->t.field("category3Id").value(albumIndexQuery.getCategory3Id())));
+        }
+        //2.4 处理标签查询条件(可能有多个)
+        if (CollUtil.isNotEmpty(albumIndexQuery.getAttributeList())){
+            for(String attributeIdAndValueId : albumIndexQuery.getAttributeList()){
+                String[] split = attributeIdAndValueId.split(":");
+                if (split != null && split.length == 2){
+                    boolQuery.filter(f->f.nested(n->n.path("attributeValueIndexList")
+                            .query(q->q.bool(b->b.must(m->m.term(t->t.field("attributeId").value(split[0])))
+                                    .must(m->m.term(t->t.field("attributeValueId").value(split[1])))))));
+                }
+            }
+        }
+        searchBuilder.query(boolQuery.build()._toQuery());
+        //3.设置请求体参数"from","size" 处理分页
+        int from = (albumIndexQuery.getPageNo() - 1) * albumIndexQuery.getPageSize();
+        searchBuilder.from(from);
+        searchBuilder.size(albumIndexQuery.getPageSize());
+        //4.设置请求体参数"sort" 处理排序（动态 综合、播放量、发布时间）
+        String order = albumIndexQuery.getOrder();
+        if (ObjectUtil.isNotEmpty(order)){
+            String[] split = order.split(":");
+            if (split != null && split.length == 2){
+                String orderField = "";
+                switch (split[0]){
+                    case "1":
+                        orderField = "hotScore";
+                        break;
+                    case "2":
+                        orderField = "playStatNum";
+                        break;
+                    case "3":
+                        orderField = "createTime";
+                        break;
+                }
+                String finalOrderField = orderField;
+                searchBuilder.sort(s->s.field(f->f.field(finalOrderField).order("asc".equals(split[1])?SortOrder.Asc:SortOrder.Desc)));
+            }
+
+        }
+        //5.设置请求体参数"highlight" 处理高亮，前提：用户录入关键字
+        if (ObjectUtil.isNotEmpty(keyword)){
+            searchBuilder.highlight(h->h.fields("albumTitle", hl->hl.preTags("<font color='red'>").postTags("</font>")));
+        }
+        //6.设置请求体参数"_source" 处理字段指定
+        searchBuilder.source(s -> s.filter(f -> f.excludes("category1Id",
+                "category2Id",
+                "category3Id",
+                "attributeValueIndexList.attributeId",
+                "attributeValueIndexList.valueId")));
+
+        //7.调用构建器builder返回检索请求对象
+        return searchBuilder.build();
+    }
+
+    @Override
+    public AlbumSearchResponseVo parseResult(SearchResponse<AlbumInfoIndex> searchResponse, AlbumIndexQuery queryVo) {
+        //1.创建结果对象，设置页码和页大小
+        AlbumSearchResponseVo vo = new AlbumSearchResponseVo();
+        vo.setPageNo(queryVo.getPageNo());
+        vo.setPageSize(queryVo.getPageSize());
+        //2.从响应结果中获取总记录数，计算总页数
+        long total = searchResponse.hits().total().value();
+        vo.setTotal(total);
+        long totalPages = total % queryVo.getPageSize() == 0 ? total / queryVo.getPageSize() : total / queryVo.getPageSize() + 1;
+        vo.setTotalPages(totalPages);
+        //3.处理文档
+        List<Hit<AlbumInfoIndex>> hitList = searchResponse.hits().hits();
+        if(CollUtil.isNotEmpty(hitList)){
+            List<AlbumInfoIndexVo> albumInfoIndexVoList = hitList.stream().map(hit -> {
+                AlbumInfoIndexVo albumInfoIndexVo = BeanUtil.copyProperties(hit.source(), AlbumInfoIndexVo.class);
+                Map<String, List<String>> highlightMap = hit.highlight();
+                if (CollectionUtil.isNotEmpty(highlightMap) && highlightMap.containsKey("albumTitle")) {
+                    String highlightAlbumTitle = highlightMap.get("albumTitle").get(0);
+                    albumInfoIndexVo.setAlbumTitle(highlightAlbumTitle);
+                }
+                return albumInfoIndexVo;
+            }).collect(Collectors.toList());
+            //4.返回结果对象
+            vo.setList(albumInfoIndexVoList);
+        }
+
+        return vo;
     }
 }
