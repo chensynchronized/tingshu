@@ -21,6 +21,7 @@ import com.atguigu.tingshu.model.album.TrackInfo;
 import com.atguigu.tingshu.query.album.AlbumInfoQuery;
 import com.atguigu.tingshu.vo.album.AlbumInfoVo;
 import com.atguigu.tingshu.vo.album.AlbumListVo;
+import com.atguigu.tingshu.vo.album.AlbumStatVo;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -179,6 +180,12 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
 				.last("limit 50")
 				.orderByDesc(AlbumInfo::getId);
 		return albumInfoMapper.selectList(lambdaQueryWrapper);
+
+	}
+
+	@Override
+	public AlbumStatVo getAlbumStatVo(Long albumId) {
+		return albumInfoMapper.getAlbumStatVo(albumId);
 
 	}
 }
