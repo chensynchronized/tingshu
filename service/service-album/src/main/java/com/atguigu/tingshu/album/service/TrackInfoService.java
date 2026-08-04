@@ -2,6 +2,7 @@ package com.atguigu.tingshu.album.service;
 
 import com.atguigu.tingshu.model.album.TrackInfo;
 import com.atguigu.tingshu.query.album.TrackInfoQuery;
+import com.atguigu.tingshu.vo.album.AlbumTrackListVo;
 import com.atguigu.tingshu.vo.album.TrackInfoVo;
 import com.atguigu.tingshu.vo.album.TrackListVo;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -43,4 +44,13 @@ public interface TrackInfoService extends IService<TrackInfo> {
      * @return
      */
     void removeTrackInfo(Long id);
+    /**
+     * 用于小程序端专辑页面展示分页声音列表，动态根据用户展示声音付费标识
+     *
+     * @param pageParam MP分页对象
+     * @param albumId 专辑ID
+     * @param userId 用户ID
+     * @return
+     */
+    Page<AlbumTrackListVo> findAlbumTrackPage(Page<AlbumTrackListVo> pageParam, Long albumId, Long userId);
 }

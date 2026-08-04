@@ -48,6 +48,23 @@ where album_id = #{param}
 and is_deleted = 0
 group by album_id
     </select>
+    <select id="getAlbumTrackPage" resultType="com.atguigu.tingshu.vo.album.AlbumTrackListVo">
+
+select
+        ti.id track_id,
+        ti.track_title,
+        ti.media_duration,
+        ti.order_num,
+        max(if(ts.stat_type = '0401',ts.stat_num,0)) playStatNum,
+        max(if(ts.stat_type = '0404',ts.stat_num,0)) albumCommentStatNum,
+        ti.create_time
+from track_info ti left join track_stat ts
+on ti.id = ts.track_id
+where ti.album_id = #{albumId} and ti.is_deleted = 0
+group by ti.id
+order by ti.order_num asc
+
+    </select>
 
 
 </mapper>

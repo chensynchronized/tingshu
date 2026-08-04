@@ -7,6 +7,7 @@ import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.common.util.AuthContextHolder;
 import com.atguigu.tingshu.model.album.TrackInfo;
 import com.atguigu.tingshu.query.album.TrackInfoQuery;
+import com.atguigu.tingshu.vo.album.AlbumTrackListVo;
 import com.atguigu.tingshu.vo.album.TrackInfoVo;
 import com.atguigu.tingshu.vo.album.TrackListVo;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -120,6 +121,26 @@ public class TrackInfoApiController {
 	public Result removeTrackInfo(@PathVariable Long id){
 		trackInfoService.removeTrackInfo(id);
 		return Result.ok();
+	}
+
+	/**
+	 * 用于小程序端专辑页面展示分页声音列表，动态根据用户展示声音付费标识
+	 *
+	 * @param albumId
+	 * @param page
+	 * @param limit
+	 * @return
+	 */
+	@GuiGuLogin(required = false)
+	@Operation(summary = "用于小程序端专辑页面展示分页声音列表，动态根据用户展示声音付费标识")
+	@GetMapping("/trackInfo/findAlbumTrackPage/{albumId}/{page}/{limit}")
+	public Result<Page<AlbumTrackListVo>> findAlbumTrackPage(@PathVariable Long albumId,
+													   @PathVariable Long page,
+													   @PathVariable Long limit){
+		Long userId = AuthContextHolder.getUserId();
+		Page<AlbumTrackListVo> pageParam = new Page<>(page, limit);
+		pageParam = trackInfoService.findAlbumTrackPage(pageParam, albumId, userId);
+		return Result.ok(pageParam);
 	}
 
 }

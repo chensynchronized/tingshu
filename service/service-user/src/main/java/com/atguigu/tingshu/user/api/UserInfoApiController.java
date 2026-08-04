@@ -6,10 +6,10 @@ import com.atguigu.tingshu.vo.user.UserInfoVo;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
 
 @Tag(name = "用户管理接口")
 @RestController
@@ -31,6 +31,21 @@ public class UserInfoApiController {
 	public Result<UserInfoVo> getUserInfoVoById(@PathVariable Long userId) {
 		UserInfoVo userInfoVo = userInfoService.getUserInfoVoById(userId);
 		return Result.ok(userInfoVo);
+	}
+	/**
+	 * 该接口提供给给专辑服务，展示声音列表动态判断付费标识
+	 * 判断当前用户某一页中声音列表购买情况
+	 *
+	 * @param userId               用户ID
+	 * @param albumId              专辑ID
+	 * @param needCheckTrackIdList 待检查购买情况声音列表
+	 * @return data:{声音ID：购买结果}   结果：1（已购）0（未购买）
+	 */
+	@Operation(summary = "判断当前用户某一页中声音列表购买情况")
+	@PostMapping("/userInfo/userIsPaidTrack/{userId}/{albumId}")
+	public Result<Map<Long, Integer>> userIsPaidTrack(@PathVariable Long userId, @PathVariable Long albumId, @RequestBody List<Long> needCheckTrackIdList){
+		Map<Long, Integer> resultMap = userInfoService.userIsPaidTrack(userId, albumId, needCheckTrackIdList);
+		return Result.ok(resultMap);
 	}
 
 }

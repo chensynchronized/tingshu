@@ -1,13 +1,17 @@
 package com.atguigu.tingshu.vo.user;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
+import org.springframework.format.annotation.DateTimeFormat;
 
+import java.io.Serializable;
 import java.util.Date;
 
 @Data
 @Schema(description = "UserInfoVo")
-public class UserInfoVo {
+public class UserInfoVo implements Serializable {
 
 	@Schema(description = "用户id")
 	private Long id;
@@ -25,6 +29,15 @@ public class UserInfoVo {
 	private Integer isVip;
 
 	@Schema(description = "当前VIP到期时间，即失效时间")
+	@DateTimeFormat(
+			pattern = "yyyy-MM-dd"
+	)
+	@JsonFormat(
+			shape = JsonFormat.Shape.STRING,
+			pattern = "yyyy-MM-dd",
+			timezone = "GMT+8"
+	)
+	@JsonDeserialize
 	private Date vipExpireTime;
 
 }
