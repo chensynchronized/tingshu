@@ -74,5 +74,16 @@ public class SearchApiController {
         return Result.ok(searchService.completeSuggest(keyword));
     }
 
+    /**
+     * 为定时更新首页排行榜提供调用接口
+     * @return
+     */
+    @Operation(summary = "为定时更新首页排行榜提供调用接口")
+    @GetMapping("/albumInfo/updateLatelyAlbumRanking")
+    public Result updateLatelyAlbumRanking(){
+        searchService.updateLatelyAlbumRanking();
+        return Result.ok();
+    }
+
 }
 

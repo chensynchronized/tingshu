@@ -22,11 +22,9 @@ import co.elastic.clients.elasticsearch.core.search.Suggestion;
 import co.elastic.clients.json.JsonData;
 import com.alibaba.fastjson.JSON;
 import com.atguigu.tingshu.album.AlbumFeignClient;
+import com.atguigu.tingshu.common.constant.RedisConstant;
 import com.atguigu.tingshu.common.util.PinYinUtils;
-import com.atguigu.tingshu.model.album.AlbumAttributeValue;
-import com.atguigu.tingshu.model.album.AlbumInfo;
-import com.atguigu.tingshu.model.album.BaseCategory3;
-import com.atguigu.tingshu.model.album.BaseCategoryView;
+import com.atguigu.tingshu.model.album.*;
 import com.atguigu.tingshu.model.search.AlbumInfoIndex;
 import com.atguigu.tingshu.model.search.AttributeValueIndex;
 import com.atguigu.tingshu.model.search.SuggestIndex;
@@ -41,6 +39,7 @@ import com.atguigu.tingshu.vo.user.UserInfoVo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.elasticsearch.core.suggest.Completion;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -66,6 +65,8 @@ public class SearchServiceImpl implements SearchService {
     private ElasticsearchClient elasticsearchClient;
     @Autowired
     private SuggestIndexRepository suggestIndexRepository;
+    @Autowired
+    private RedisTemplate redisTemplate;
 
 
 
@@ -375,5 +376,46 @@ public class SearchServiceImpl implements SearchService {
             }
         });
         return list;
+    }
+    /**
+     * 获取不同分类下不同排序方式榜单专辑列表
+     */
+    @Override
+    public void updateLatelyAlbumRanking() {
+        try{
+            //1.远程调用专辑服务，获取所有一级分类
+            List<BaseCategory1> baseCategory1List = albumFeignClient.findAllCategory1().getData();
+            Assert.isNull(baseCategory1List, "一级分类为空");
+            //2.循环遍历一级分类
+            for (BaseCategory1 baseCategory1 : baseCategory1List) {
+                Long baseCategory1Id = baseCategory1.getId();
+                //3.处理当前一级分类，五种排序方式榜单专辑
+                String[] rankingDimensionArray =
+                        new String[]{"hotScore", "playStatNum", "subscribeStatNum", "buyStatNum", "commentStatNum"};
+                for (String rankingDimension : rankingDimensionArray) {
+                    //3.1查询es
+                    SearchResponse<AlbumInfoIndex> response = elasticsearchClient.search(s -> s.index(INDEX_NAME)
+                                    .query(q->q.match(m->m.field("category1Id").query(baseCategory1Id)))
+                                    .sort(sort->sort.field(f->f.field(rankingDimension).order(SortOrder.Desc)))
+                                    .size(10)
+                            , AlbumInfoIndex.class);
+                    List<Hit<AlbumInfoIndex>> hits = response.hits().hits();
+                    if (CollUtil.isNotEmpty(hits)){
+                        List<AlbumInfoIndex> albumInfoIndexList = hits.stream().map(hit -> {
+                            AlbumInfoIndex source = hit.source();
+                            return source;
+
+                        }).collect(Collectors.toList());
+                        //4.将专辑榜单存入redis中
+                        String key = RedisConstant.RANKING_KEY_PREFIX + baseCategory1Id;
+                        redisTemplate.opsForHash().put(key,rankingDimension, albumInfoIndexList);
+                    }
+                }
+            }
+
+        }catch (Exception e){
+            log.error("[搜索服务]更新排行榜异常：{}", e);
+            throw new RuntimeException(e);
+        }
     }
 }

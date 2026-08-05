@@ -60,5 +60,10 @@ public interface SearchService {
      * @return
      */
     Collection<String> parseSuggestResult(String suggestName, SearchResponse<SuggestIndex> searchResponse);
+    /**
+     * 获取不同分类下不同排序方式榜单专辑列表
+     */
+    void updateLatelyAlbumRanking();
+
 
 }

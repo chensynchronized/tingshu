@@ -5,6 +5,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.atguigu.tingshu.album.AlbumFeignClient;
 import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.model.album.AlbumInfo;
+import com.atguigu.tingshu.model.album.BaseCategory1;
 import com.atguigu.tingshu.model.album.BaseCategory3;
 import com.atguigu.tingshu.model.album.BaseCategoryView;
 import com.atguigu.tingshu.vo.album.AlbumStatVo;
@@ -45,6 +46,12 @@ public class AlbumDegradeFeignClient implements AlbumFeignClient {
     @Override
     public Result<AlbumStatVo> getAlbumStatVo(Long albumId) {
         log.error("[专辑模块]提供远程调用方法getAlbumStatVo服务降级");
+        return null;
+    }
+
+    @Override
+    public Result<List<BaseCategory1>> findAllCategory1() {
+        log.error("[专辑模块Feign调用]getAllCategory1异常");
         return null;
     }
 
