@@ -15,6 +15,7 @@ import com.atguigu.tingshu.user.service.UserListenProcessService;
 import com.atguigu.tingshu.vo.album.TrackStatMqVo;
 import com.atguigu.tingshu.vo.user.UserListenProcessVo;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -24,6 +25,8 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -96,5 +99,28 @@ public class UserListenProcessServiceImpl implements UserListenProcessService {
 			//5.2 发送消息到更新声音统计话题中
 			kafkaService.sendMessage(KafkaConstant.QUEUE_TRACK_STAT_UPDATE, JSON.toJSONString(mqVo));
 		}
+	}
+	/**
+	 * 获取用户最近一次播放记录
+	 *
+	 * @param userId
+	 * @return
+	 */
+	@Override
+	public Map<String, Long> getLatelyTrack(Long userId) {
+		//1.构建查询条件
+		Query query = new Query();
+		query.addCriteria(Criteria.where("userId").is(userId).and("isShow").is(1));
+		query.with(Sort.by(Sort.Direction.DESC, "updateTime"));
+		query.limit(1);
+		//2.查询播放记录
+		UserListenProcess userListenProcess = mongoTemplate.findOne(query, UserListenProcess.class,MongoUtil.getCollectionName(MongoUtil.MongoCollectionEnum.USER_LISTEN_PROCESS, userId));
+		if (ObjectUtil.isNotEmpty(userListenProcess)){
+			HashMap<String, Long> result = new HashMap<>();
+			result.put("trackId", userListenProcess.getTrackId());
+			result.put("albumId", userListenProcess.getAlbumId());
+			return result;
+		}
+		return null;
 	}
 }
