@@ -3,10 +3,7 @@ package com.atguigu.tingshu.album.service.impl;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.ObjectUtil;
-import com.atguigu.tingshu.album.mapper.AlbumAttributeValueMapper;
-import com.atguigu.tingshu.album.mapper.AlbumInfoMapper;
-import com.atguigu.tingshu.album.mapper.AlbumStatMapper;
-import com.atguigu.tingshu.album.mapper.TrackInfoMapper;
+import com.atguigu.tingshu.album.mapper.*;
 import com.atguigu.tingshu.album.service.AlbumAttributeValueService;
 import com.atguigu.tingshu.album.service.AlbumInfoService;
 import com.atguigu.tingshu.album.service.TrackInfoService;
@@ -22,16 +19,19 @@ import com.atguigu.tingshu.query.album.AlbumInfoQuery;
 import com.atguigu.tingshu.vo.album.AlbumInfoVo;
 import com.atguigu.tingshu.vo.album.AlbumListVo;
 import com.atguigu.tingshu.vo.album.AlbumStatVo;
+import com.atguigu.tingshu.vo.album.TrackStatMqVo;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -49,6 +49,10 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
 	private TrackInfoMapper trackInfoMapper;
 	@Autowired
 	private KafkaService kafkaService;
+	@Autowired
+	private RedisTemplate redisTemplate;
+	@Autowired
+	private TrackStatMapper trackStatMapper;
 
 	/**
 	 * 保存专辑方法
@@ -187,5 +191,28 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
 	public AlbumStatVo getAlbumStatVo(Long albumId) {
 		return albumInfoMapper.getAlbumStatVo(albumId);
 
+	}
+
+	@Override
+	public void updateTrackStat(TrackStatMqVo mqVo) {
+		//1.消息幂等性处理
+		String key = "mq:" + mqVo.getBusinessNo();
+		Boolean flag = redisTemplate.opsForValue().setIfAbsent(key, mqVo.getBusinessNo(), 1L, TimeUnit.HOURS);
+		try{
+			if (flag){
+				//2.跟新专辑声音统计信息
+				trackStatMapper.updateTrackStat(mqVo.getTrackId(), mqVo.getStatType(), mqVo.getCount());
+				//3.更新专辑统计信息
+				if (SystemConstant.TRACK_STAT_PLAY.equals(mqVo.getStatType())){
+					albumStatMapper.updateAlbumStat(mqVo.getAlbumId(), SystemConstant.ALBUM_STAT_PLAY, mqVo.getCount());
+				}
+				if (SystemConstant.TRACK_STAT_COMMENT.equals(mqVo.getStatType())){
+					albumStatMapper.updateAlbumStat(mqVo.getAlbumId(), SystemConstant.ALBUM_STAT_COMMENT, mqVo.getCount());
+				}
+			}
+		}catch (Exception e){
+			redisTemplate.delete(key);
+			throw new RuntimeException(e);
+		}
 	}
 }
