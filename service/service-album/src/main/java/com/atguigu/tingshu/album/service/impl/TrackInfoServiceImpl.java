@@ -16,10 +16,7 @@ import com.atguigu.tingshu.model.album.TrackInfo;
 import com.atguigu.tingshu.model.album.TrackStat;
 import com.atguigu.tingshu.query.album.TrackInfoQuery;
 import com.atguigu.tingshu.user.client.UserFeignClient;
-import com.atguigu.tingshu.vo.album.AlbumTrackListVo;
-import com.atguigu.tingshu.vo.album.TrackInfoVo;
-import com.atguigu.tingshu.vo.album.TrackListVo;
-import com.atguigu.tingshu.vo.album.TrackMediaInfoVo;
+import com.atguigu.tingshu.vo.album.*;
 import com.atguigu.tingshu.vo.user.UserInfoVo;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
@@ -238,5 +235,16 @@ public class TrackInfoServiceImpl extends ServiceImpl<TrackInfoMapper, TrackInfo
 			}
 		}
 		return pageParam;
+	}
+	/**
+	 * 根据声音ID，获取声音统计信息
+	 * @param trackId
+	 * @return
+	 */
+	@Override
+	public TrackStatVo getTrackStatVo(Long trackId) {
+		TrackStatVo trackStatVo = trackStatMapper.getTrackStatVo(trackId);
+		return trackStatVo;
+
 	}
 }

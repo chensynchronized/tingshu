@@ -18,6 +18,6 @@ public class TrackStatVo {
 	private Integer praiseStatNum;
 
 	@Schema(description = "评论数")
-	private Integer albumCommentStatNum;
+	private Integer commentStatNum;
 
 }
