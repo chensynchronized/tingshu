@@ -65,5 +65,11 @@ public interface SearchService {
      */
     void updateLatelyAlbumRanking();
 
-
+    /**
+     * 获取指定1级分类下不同排序方式榜单列表-从Redis中获取
+     * @param category1Id
+     * @param dimension
+     * @return
+     */
+    List<AlbumInfoIndex> findRankingList(Long category1Id, String dimension);
 }

@@ -2,8 +2,10 @@ package com.atguigu.tingshu.search.api;
 
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import com.atguigu.tingshu.common.result.Result;
+import com.atguigu.tingshu.model.search.AlbumInfoIndex;
 import com.atguigu.tingshu.query.search.AlbumIndexQuery;
 import com.atguigu.tingshu.search.service.SearchService;
+import com.atguigu.tingshu.vo.search.AlbumInfoIndexVo;
 import com.atguigu.tingshu.vo.search.AlbumSearchResponseVo;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -83,6 +85,19 @@ public class SearchApiController {
     public Result updateLatelyAlbumRanking(){
         searchService.updateLatelyAlbumRanking();
         return Result.ok();
+    }
+
+    /**
+     * 获取指定1级分类下不同排序方式榜单列表-从Redis中获取
+     * @param category1Id
+     * @param dimension
+     * @return
+     */
+    @Operation(summary = "获取指定1级分类下不同排序方式榜单列表")
+    @GetMapping("/albumInfo/findRankingList/{category1Id}/{dimension}")
+    public Result<List<AlbumInfoIndex>> findRankingList(@PathVariable Long category1Id, @PathVariable String dimension){
+        List<AlbumInfoIndex> list = searchService.findRankingList(category1Id, dimension);
+        return Result.ok(list);
     }
 
 }

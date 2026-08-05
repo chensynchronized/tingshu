@@ -418,4 +418,15 @@ public class SearchServiceImpl implements SearchService {
             throw new RuntimeException(e);
         }
     }
+
+    @Override
+    public List<AlbumInfoIndex> findRankingList(Long category1Id, String dimension) {
+        String key = RedisConstant.RANKING_KEY_PREFIX + category1Id;
+        Boolean flag = redisTemplate.opsForHash().hasKey(key, dimension);
+        if(flag){
+            List<AlbumInfoIndex> list = (List<AlbumInfoIndex>)redisTemplate.opsForHash().get(key, dimension);
+            return list;
+        }
+        return null;
+    }
 }
