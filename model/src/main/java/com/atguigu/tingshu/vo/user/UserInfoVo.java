@@ -12,7 +12,7 @@ import java.util.Date;
 @Data
 @Schema(description = "UserInfoVo")
 public class UserInfoVo implements Serializable {
-
+	private static final long serialVersionUID = 10L;
 	@Schema(description = "用户id")
 	private Long id;
 
@@ -29,15 +29,15 @@ public class UserInfoVo implements Serializable {
 	private Integer isVip;
 
 	@Schema(description = "当前VIP到期时间，即失效时间")
-	@DateTimeFormat(
-			pattern = "yyyy-MM-dd"
-	)
-	@JsonFormat(
-			shape = JsonFormat.Shape.STRING,
-			pattern = "yyyy-MM-dd",
-			timezone = "GMT+8"
-	)
-	@JsonDeserialize
+//	@DateTimeFormat(
+//			pattern = "yyyy-MM-dd"
+//	)
+//	@JsonFormat(
+//			shape = JsonFormat.Shape.STRING,
+//			pattern = "yyyy-MM-dd",
+//			timezone = "GMT+8"
+//	)
+
 	private Date vipExpireTime;
 
 }

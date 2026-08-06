@@ -55,7 +55,7 @@ public class WxLoginApiController {
     @Operation(summary = "修改当前登录用户基本信息")
     @GuiGuLogin
     @PostMapping("/updateUser")
-    public Result updateUser(UserInfoVo userInfoVo) {
+    public Result updateUser(@RequestBody UserInfoVo userInfoVo) {
         Long userId = AuthContextHolder.getUserId();
         userInfoService.updateUser(userId,userInfoVo);
         return Result.ok();

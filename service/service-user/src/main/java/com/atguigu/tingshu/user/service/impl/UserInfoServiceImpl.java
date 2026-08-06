@@ -33,6 +33,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -55,34 +56,43 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
 
 	@Override
 	public Map<String, String> wxLogin(String code) {
-		try{
-			//1.调用微信接口服务查询openid
+		try {
+			//1.根据入参提交临时票据，调用微信获取微信账户唯一标识接口，得到微信账户openId
 			WxMaJscode2SessionResult sessionInfo = wxMaService.getUserService().getSessionInfo(code);
-			String openid = sessionInfo.getOpenid();
-			//2.根据openid查询用户信息
-			LambdaQueryWrapper<UserInfo> queryWrapper = Wrappers.lambdaQuery(UserInfo.class).eq(UserInfo::getWxOpenId, openid);
-			UserInfo userInfo = userInfoMapper.selectOne(queryWrapper);
-			if (ObjectUtil.isEmpty(userInfo)){
-				//2.1如果用户信息为null，表示用户为首次登录，构建userInfo对象
-				userInfo = new UserInfo();
-				userInfo.setWxOpenId(openid);
-				userInfo.setNickname("听友" + IdUtil.getSnowflakeNextId());
-				userInfo.setAvatarUrl("https://oss.aliyuncs.com/aliyun_id_photo_bucket/default_handsome.jpg");
-				userInfo.setIsVip(0);
-				userInfoMapper.insert(userInfo);
-				//2.2.发送kafka消息，初始化用户账户信息
-				kafkaService.sendMessage(KafkaConstant.QUEUE_USER_REGISTER, userInfo.getId().toString());
+			if (sessionInfo != null) {
+				//2.根据微信唯一标识查询用户记录
+				String wxOpenId = sessionInfo.getOpenid();
+
+				//2.1 如果查询为空-将微信OpenId跟听书项目中用户关联（新增用户记录中存储微信账户唯一标识）
+				LambdaQueryWrapper<UserInfo> queryWrapper = new LambdaQueryWrapper<>();
+				queryWrapper.eq(UserInfo::getWxOpenId, wxOpenId);
+				UserInfo userInfo = userInfoMapper.selectOne(queryWrapper);
+				if (userInfo == null) {
+					//2.2 为首次登录用户构建用户对象，保存用户记录
+					userInfo = new UserInfo();
+					userInfo.setWxOpenId(wxOpenId);
+					userInfo.setNickname("听友" + IdUtil.getSnowflakeNextId());
+					userInfo.setAvatarUrl("https://oss.aliyuncs.com/aliyun_id_photo_bucket/default_handsome.jpg");
+					userInfo.setIsVip(0);
+					userInfoMapper.insert(userInfo);
+					//2.3 发送Kafka异步消息，通知账户微服务新增账户记录
+					kafkaService.sendMessage(KafkaConstant.QUEUE_USER_REGISTER, userInfo.getId().toString());
+				}
+
+				//3.基于用户记录生成Token 将用户令牌存入Redis Key:前缀+token  Value:用户信息UserInfoVo
+				String token = IdUtil.fastUUID();
+				String loginKey = RedisConstant.USER_LOGIN_KEY_PREFIX + token;
+				//排除掉用户隐私数据
+				UserInfoVo userInfoVo = BeanUtil.copyProperties(userInfo, UserInfoVo.class);
+				redisTemplate.opsForValue().set(loginKey, userInfoVo, RedisConstant.USER_LOGIN_KEY_TIMEOUT, TimeUnit.SECONDS);
+
+				//4.将用户token封装结果返回
+				Map<String, String> mapResult = new HashMap<>();
+				mapResult.put("token", token);
+				return mapResult;
 			}
-			//3.基于用户信息生成token
-			String token = IdUtil.fastSimpleUUID();
-			String key = RedisConstant.USER_LOGIN_KEY_PREFIX + token;
-			UserInfoVo userInfoVo = BeanUtil.copyProperties(userInfo, UserInfoVo.class);
-			redisTemplate.opsForValue().set(key, userInfoVo,RedisConstant.USER_LOGIN_REFRESH_KEY_TIMEOUT);
-			//4.将用户token封装结果返回
-			HashMap<String, String> resultMap = new HashMap<>();
-			resultMap.put("token",token);
-			return resultMap;
-		}catch (Exception e){
+			return null;
+		} catch (Exception e) {
 			log.error("[用户服务]微信登录异常：{}", e);
 			throw new RuntimeException(e);
 		}

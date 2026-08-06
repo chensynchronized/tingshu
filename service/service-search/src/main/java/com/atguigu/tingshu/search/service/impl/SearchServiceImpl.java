@@ -385,7 +385,7 @@ public class SearchServiceImpl implements SearchService {
         try{
             //1.远程调用专辑服务，获取所有一级分类
             List<BaseCategory1> baseCategory1List = albumFeignClient.findAllCategory1().getData();
-            Assert.isNull(baseCategory1List, "一级分类为空");
+            Assert.notNull(baseCategory1List, "一级分类为空");
             //2.循环遍历一级分类
             for (BaseCategory1 baseCategory1 : baseCategory1List) {
                 Long baseCategory1Id = baseCategory1.getId();

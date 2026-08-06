@@ -228,8 +228,11 @@ public class TrackInfoServiceImpl extends ServiceImpl<TrackInfoMapper, TrackInfo
 				Map<Long, Integer> map = userFeignClient.userIsPaidTrack(userId, albumId, trackIdList).getData();
 				//4.6.根据付费状态设置付费标识
 				pageParam.getRecords().forEach(albumTrackListVo -> {
-					Boolean isShowPaidMark = map.get(albumTrackListVo.getTrackId()) == 0;
-					albumTrackListVo.setIsShowPaidMark(isShowPaidMark);
+					if (trackIdList.contains(albumTrackListVo.getTrackId())){
+						Boolean isShowPaidMark = map.get(albumTrackListVo.getTrackId()) == 0;
+						albumTrackListVo.setIsShowPaidMark(isShowPaidMark);
+					}
+
 				});
 
 			}

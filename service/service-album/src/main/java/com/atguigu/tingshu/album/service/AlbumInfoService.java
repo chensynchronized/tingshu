@@ -28,6 +28,8 @@ public interface AlbumInfoService extends IService<AlbumInfo> {
 
     AlbumInfo getAlbumInfo(Long id);
 
+    AlbumInfo getAlbumInfoFromDB(Long id);
+
     void updateAlbumInfo(Long id, AlbumInfoVo albumInfoVo);
 
     List<AlbumInfo> findUserAllAlbumList(Long userId);

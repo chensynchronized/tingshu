@@ -2,12 +2,14 @@ package com.atguigu.tingshu.album.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.ObjectUtil;
 import com.atguigu.tingshu.album.mapper.*;
 import com.atguigu.tingshu.album.service.AlbumAttributeValueService;
 import com.atguigu.tingshu.album.service.AlbumInfoService;
 import com.atguigu.tingshu.album.service.TrackInfoService;
 import com.atguigu.tingshu.common.constant.KafkaConstant;
+import com.atguigu.tingshu.common.constant.RedisConstant;
 import com.atguigu.tingshu.common.constant.SystemConstant;
 import com.atguigu.tingshu.common.execption.GuiguException;
 import com.atguigu.tingshu.common.service.KafkaService;
@@ -27,9 +29,11 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -141,6 +145,61 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
 
 	@Override
 	public AlbumInfo getAlbumInfo(Long id) {
+		try{
+			//1.优先从缓存中获取数据
+			String dataKey = RedisConstant.ALBUM_INFO_PREFIX + id;
+			AlbumInfo albumInfo = (AlbumInfo) redisTemplate.opsForValue().get(dataKey);
+			if (ObjectUtil.isNotEmpty(albumInfo)){
+				log.info("命中缓存，直接返回，线程ID：{}，线程名称：{}", Thread.currentThread().getId(), Thread.currentThread().getName());
+				return albumInfo;
+			}
+			//2.查询不到加锁
+			String lockKey = RedisConstant.ALBUM_LOCK_PREFIX + id;
+			String lockValue = IdUtil.fastSimpleUUID();
+		 	Boolean flag = redisTemplate.opsForValue().setIfAbsent(lockKey, lockValue, RedisConstant.ALBUM_LOCK_EXPIRE_PX2, TimeUnit.SECONDS);
+			try{
+				if (flag){
+					//3.双检加锁
+					albumInfo = (AlbumInfo) redisTemplate.opsForValue().get(dataKey);
+					if (ObjectUtil.isNotEmpty(albumInfo)){
+						return albumInfo;
+					}
+					//4.查询数据库
+					albumInfo = this.getAlbumInfoFromDB(id);
+					redisTemplate.opsForValue().set(dataKey, albumInfo, RedisConstant.ALBUM_TIMEOUT, TimeUnit.SECONDS);
+					log.info("缓存中不存在，从数据库查询并放入缓存，线程ID：{}，线程名称：{}", Thread.currentThread().getId(), Thread.currentThread().getName());
+					return albumInfo;
+				}else{
+					try {
+						//5.获取锁失败则自旋（业务要求必须执行）
+						Thread.sleep(200);
+					} catch (InterruptedException e) {
+						throw new RuntimeException(e);
+					}
+					log.error("获取锁失败，自旋：{}，线程名称：{}", Thread.currentThread().getId(), Thread.currentThread().getName());
+					return this.getAlbumInfo(id);
+				}
+			}finally{
+				String scriptText = "if redis.call(\"get\",KEYS[1]) == ARGV[1]\n" +
+						"then\n" +
+						"    return redis.call(\"del\",KEYS[1])\n" +
+						"else\n" +
+						"    return 0\n" +
+						"end";
+				DefaultRedisScript<Long> script = new DefaultRedisScript<>();
+				script.setScriptText(scriptText);
+				script.setResultType(Long.class);
+				redisTemplate.execute(script, Arrays.asList(lockKey),lockValue);
+			}
+		}catch (Exception e){
+			//兜底处理方案：Redis服务有问题，将业务数据获取自动从数据库获取
+			log.info("[专辑服务]Redis服务异常：{}", e);
+			return this.getAlbumInfoFromDB(id);
+		}
+	}
+
+	@Override
+	public AlbumInfo getAlbumInfoFromDB(Long id) {
 		AlbumInfo albumInfo = albumInfoMapper.selectById(id);
 		if (ObjectUtil.isNotEmpty(albumInfo)){
 			LambdaQueryWrapper<AlbumAttributeValue> wrapper = Wrappers.lambdaQuery(AlbumAttributeValue.class).eq(AlbumAttributeValue::getAlbumId, id);
