@@ -21,4 +21,11 @@ public interface UserAccountService extends IService<UserAccount> {
      * @param orderNo 订单编号
      */
     void saveUserAccountDetail(Long userId, String title, String tradeType, BigDecimal amount, String orderNo);
+    /**
+     * 获取当前登录用户账户可用余额
+     *
+     * @param userId 用户ID
+     * @return
+     */
+    BigDecimal getAvailableAmount(Long userId);
 }

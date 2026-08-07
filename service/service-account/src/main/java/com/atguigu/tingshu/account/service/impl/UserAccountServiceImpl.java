@@ -6,6 +6,8 @@ import com.atguigu.tingshu.account.service.UserAccountService;
 import com.atguigu.tingshu.common.constant.SystemConstant;
 import com.atguigu.tingshu.model.account.UserAccount;
 import com.atguigu.tingshu.model.account.UserAccountDetail;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,5 +52,18 @@ public class UserAccountServiceImpl extends ServiceImpl<UserAccountMapper, UserA
 		userAccountDetail.setAmount(amount);
 		userAccountDetail.setOrderNo(orderNo);
 		userAccountDetailMapper.insert(userAccountDetail);
+	}
+	/**
+	 * 获取当前登录用户账户可用余额
+	 *
+	 * @param userId 用户ID
+	 * @return
+	 */
+	@Override
+	public BigDecimal getAvailableAmount(Long userId) {
+		LambdaQueryWrapper<UserAccount> queryWrapper = Wrappers.lambdaQuery(UserAccount.class).eq(UserAccount::getUserId, userId);
+		UserAccount userAccount = userAccountMapper.selectOne(queryWrapper);
+		return userAccount.getAvailableAmount();
+
 	}
 }
