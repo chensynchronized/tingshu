@@ -36,7 +36,10 @@ import com.atguigu.tingshu.user.client.UserFeignClient;
 import com.atguigu.tingshu.vo.search.AlbumInfoIndexVo;
 import com.atguigu.tingshu.vo.search.AlbumSearchResponseVo;
 import com.atguigu.tingshu.vo.user.UserInfoVo;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RBloomFilter;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.elasticsearch.core.suggest.Completion;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -67,6 +70,8 @@ public class SearchServiceImpl implements SearchService {
     private SuggestIndexRepository suggestIndexRepository;
     @Autowired
     private RedisTemplate redisTemplate;
+    @Resource
+    private RedissonClient redissonClient;
 
 
 
@@ -146,6 +151,10 @@ public class SearchServiceImpl implements SearchService {
         //6.写入索引库
         albumInfoIndexRepository.save(albumInfoIndex);
         this.saveSuggestIndex(albumInfoIndex);
+        //7.存入布隆过滤器
+        RBloomFilter<Long> bloomFilter = redissonClient.getBloomFilter(RedisConstant.ALBUM_BLOOM_FILTER);
+        bloomFilter.add(albumId);
+
     }
 
     @Override

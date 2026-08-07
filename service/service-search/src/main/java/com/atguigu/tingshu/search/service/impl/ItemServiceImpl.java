@@ -2,6 +2,8 @@ package com.atguigu.tingshu.search.service.impl;
 
 import cn.hutool.core.lang.Assert;
 import com.atguigu.tingshu.album.AlbumFeignClient;
+import com.atguigu.tingshu.common.constant.RedisConstant;
+import com.atguigu.tingshu.common.execption.GuiguException;
 import com.atguigu.tingshu.model.album.AlbumInfo;
 import com.atguigu.tingshu.model.album.BaseCategoryView;
 import com.atguigu.tingshu.search.service.ItemService;
@@ -10,6 +12,8 @@ import com.atguigu.tingshu.vo.album.AlbumStatVo;
 import com.atguigu.tingshu.vo.user.UserInfoVo;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RBloomFilter;
+import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
@@ -28,8 +32,16 @@ public class ItemServiceImpl implements ItemService {
     private UserFeignClient userFeignClient;
     @Resource
     private ThreadPoolExecutor threadPoolExecutor;
+    @Resource
+    private RedissonClient redissonClient;
     @Override
     public Map<String, Object> getItemInfo(Long albumId) {
+//        //0.查询布隆过滤器
+//        RBloomFilter<Long> bloomFilter = redissonClient.getBloomFilter(RedisConstant.ALBUM_BLOOM_FILTER);
+//        boolean flag = bloomFilter.contains(albumId);
+//        if (!flag) {
+//            throw new GuiguException(404, "访问专辑不存在");
+//        }
         //1.创建concurrentHashMap储存结果
         ConcurrentHashMap<String, Object> resultMap = new ConcurrentHashMap<>();
         //2.远程调用专辑服务，查询专辑信息
