@@ -5,6 +5,7 @@ import cn.hutool.core.util.ObjectUtil;
 import com.alibaba.fastjson.JSONObject;
 import com.atguigu.tingshu.album.mapper.*;
 import com.atguigu.tingshu.album.service.BaseCategoryService;
+import com.atguigu.tingshu.common.cache.GuiGuCache;
 import com.atguigu.tingshu.model.album.*;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
@@ -38,6 +39,7 @@ public class BaseCategoryServiceImpl extends ServiceImpl<BaseCategory1Mapper, Ba
 
 
 	@Override
+	@GuiGuCache(prefix = "baseCategoryList:")
 	public List<JSONObject> getBaseCategoryList() {
 		//1.创建目标对象集合
 		List<JSONObject> allList = new ArrayList<>();
@@ -83,6 +85,7 @@ public class BaseCategoryServiceImpl extends ServiceImpl<BaseCategory1Mapper, Ba
 	}
 
 	@Override
+	@GuiGuCache(prefix = "category1Id:attributes:")
 	public List<BaseAttribute> getAttributesByCategory1Id(Long category1Id) {
 		return baseAttributeMapper.getAttributesByCategory1Id(category1Id);
 
@@ -90,11 +93,13 @@ public class BaseCategoryServiceImpl extends ServiceImpl<BaseCategory1Mapper, Ba
 	}
 
 	@Override
+	@GuiGuCache(prefix = "category3View:")
 	public BaseCategoryView getCategoryView(Long category3Id) {
 		return baseCategoryViewMapper.selectById(category3Id);
 	}
 
 	@Override
+	@GuiGuCache(prefix = "baseCategory3Top7:")
 	public List<BaseCategory3> findTopBaseCategory3(Long category1Id) {
 		//1.根据一级分类id查询二级分类集合
 		LambdaQueryWrapper<BaseCategory2> queryWrapper = Wrappers.lambdaQuery(BaseCategory2.class).eq(BaseCategory2::getCategory1Id, category1Id);
@@ -113,6 +118,7 @@ public class BaseCategoryServiceImpl extends ServiceImpl<BaseCategory1Mapper, Ba
 	}
 
 	@Override
+	@GuiGuCache(prefix = "baseCategoryListByCategory1Id:")
 	public JSONObject getBaseCategoryListByCategory1Id(Long category1Id) {
 		LambdaQueryWrapper<BaseCategoryView> queryWrapper = Wrappers.lambdaQuery(BaseCategoryView.class).eq(BaseCategoryView::getCategory1Id, category1Id);
 		List<BaseCategoryView> baseCategoryViewList = baseCategoryViewMapper.selectList(queryWrapper);

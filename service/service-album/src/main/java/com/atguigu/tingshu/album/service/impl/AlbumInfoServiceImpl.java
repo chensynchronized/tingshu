@@ -8,6 +8,7 @@ import com.atguigu.tingshu.album.mapper.*;
 import com.atguigu.tingshu.album.service.AlbumAttributeValueService;
 import com.atguigu.tingshu.album.service.AlbumInfoService;
 import com.atguigu.tingshu.album.service.TrackInfoService;
+import com.atguigu.tingshu.common.cache.GuiGuCache;
 import com.atguigu.tingshu.common.constant.KafkaConstant;
 import com.atguigu.tingshu.common.constant.RedisConstant;
 import com.atguigu.tingshu.common.constant.SystemConstant;
@@ -199,6 +200,7 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
 	}
 
 	@Override
+	@GuiGuCache(prefix = "album:info:")
 	public AlbumInfo getAlbumInfoFromDB(Long id) {
 		AlbumInfo albumInfo = albumInfoMapper.selectById(id);
 		if (ObjectUtil.isNotEmpty(albumInfo)){
@@ -247,6 +249,7 @@ public class AlbumInfoServiceImpl extends ServiceImpl<AlbumInfoMapper, AlbumInfo
 	}
 
 	@Override
+	@GuiGuCache(prefix = "albumStatVo:")
 	public AlbumStatVo getAlbumStatVo(Long albumId) {
 		return albumInfoMapper.getAlbumStatVo(albumId);
 
