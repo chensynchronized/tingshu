@@ -29,14 +29,14 @@ public class UserInfoVo implements Serializable {
 	private Integer isVip;
 
 	@Schema(description = "当前VIP到期时间，即失效时间")
-//	@DateTimeFormat(
-//			pattern = "yyyy-MM-dd"
-//	)
-//	@JsonFormat(
-//			shape = JsonFormat.Shape.STRING,
-//			pattern = "yyyy-MM-dd",
-//			timezone = "GMT+8"
-//	)
+	@DateTimeFormat(
+			pattern = "yyyy-MM-dd"
+	)
+	@JsonFormat(
+			shape = JsonFormat.Shape.STRING,
+			pattern = "yyyy-MM-dd",
+			timezone = "GMT+8"
+	)
 
 	private Date vipExpireTime;
 

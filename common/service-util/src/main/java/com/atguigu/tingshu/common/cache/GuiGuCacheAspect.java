@@ -2,6 +2,7 @@ package com.atguigu.tingshu.common.cache;
 
 import cn.hutool.core.util.ObjectUtil;
 import com.atguigu.tingshu.common.constant.RedisConstant;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -13,6 +14,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static com.atguigu.tingshu.common.constant.RedisConstant.CACHE_INFO_PREFIX;
@@ -67,4 +69,6 @@ public class GuiGuCacheAspect {
             return joinPoint.proceed();
         }
     }
+
+
 }
