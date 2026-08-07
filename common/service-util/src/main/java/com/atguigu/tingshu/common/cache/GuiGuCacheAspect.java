@@ -50,11 +50,11 @@ public class GuiGuCacheAspect {
             RLock lock = redissonClient.getLock(CACHE_INFO_PREFIX + paramVal);
             try{
                 //4.双检加锁
+                lock.lock();
                 data = redisTemplate.opsForValue().get(key);
                 if (ObjectUtil.isNotEmpty(data)){
                     return data;
                 }
-                lock.lock();
                 //5.查询数据库，存入缓存，数据库也没有则将空对象也存入缓存
                 data = joinPoint.proceed();
                 Long ttl = ObjectUtil.isNotEmpty(data) ? RedisConstant.ALBUM_TIMEOUT : RedisConstant.ALBUM_TEMPORARY_TIMEOUT;
