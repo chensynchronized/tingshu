@@ -2,6 +2,7 @@ package com.atguigu.tingshu.user.service;
 
 import com.atguigu.tingshu.model.user.UserInfo;
 import com.atguigu.tingshu.vo.user.UserInfoVo;
+import com.atguigu.tingshu.vo.user.UserPaidRecordVo;
 import com.baomidou.mybatisplus.extension.service.IService;
 
 import java.util.List;
@@ -55,4 +56,10 @@ public interface UserInfoService extends IService<UserInfo> {
      * @return
      */
     List<Long> findUserPaidTrackList(Long userId, Long albumId);
+    /**
+     * 处理不同购买项：VIP会员，专辑、声音
+     *
+     * @param userPaidRecordVo
+     */
+    void savePaidRecord(UserPaidRecordVo userPaidRecordVo);
 }

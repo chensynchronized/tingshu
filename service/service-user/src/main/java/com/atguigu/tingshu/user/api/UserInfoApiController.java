@@ -5,6 +5,7 @@ import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.common.util.AuthContextHolder;
 import com.atguigu.tingshu.user.service.UserInfoService;
 import com.atguigu.tingshu.vo.user.UserInfoVo;
+import com.atguigu.tingshu.vo.user.UserPaidRecordVo;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -76,6 +77,25 @@ public class UserInfoApiController {
 		Long userId = AuthContextHolder.getUserId();
 		List<Long> userPaidTrackList = userInfoService.findUserPaidTrackList(userId, albumId);
 		return Result.ok(userPaidTrackList);
+	}
+
+	/**
+	 * 接口登录/未登录均可调用（微信支付成功后，需要在异步回调（没有Token），调用该方法处理购买记录）
+	 * 处理用户购买记录（虚拟物品发货）
+	 *
+	 * @param userPaidRecordVo
+	 * @return
+	 */
+	@GuiGuLogin(required = false)
+	@Operation(summary = "处理用户购买记录（虚拟物品发货）")
+	@PostMapping("/userInfo/savePaidRecord")
+	public Result savePaidRecord(@RequestBody UserPaidRecordVo userPaidRecordVo){
+		Long userId = AuthContextHolder.getUserId();
+		if (userId!= null){
+			userPaidRecordVo.setUserId(userId);
+		}
+		userInfoService.savePaidRecord(userPaidRecordVo);
+		return Result.ok();
 	}
 
 }

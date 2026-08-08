@@ -23,6 +23,12 @@ public class AlbumDegradeFeignClient implements AlbumFeignClient {
     }
 
     @Override
+    public Result<TrackInfo> getTrackInfo(Long id) {
+        log.error("[专辑模块]提供远程调用getTrackInfo服务降级");
+        return null;
+    }
+
+    @Override
     public Result<BaseCategoryView> getCategoryView(Long category3Id) {
         log.error("[专辑模块]提供远程调用getCategoryView服务降级");
         return null;

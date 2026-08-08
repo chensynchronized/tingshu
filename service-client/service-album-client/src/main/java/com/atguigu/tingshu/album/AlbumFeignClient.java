@@ -24,6 +24,9 @@ public interface AlbumFeignClient {
     @GetMapping("/albumInfo/getAlbumInfo/{id}")
     public Result<AlbumInfo> getAlbumInfo(@PathVariable Long id);
 
+    @GetMapping("/trackInfo/getTrackInfo/{id}")
+    public Result<TrackInfo> getTrackInfo(@PathVariable Long id);
+
     @GetMapping("/category/getCategoryView/{category3Id}")
     public Result<BaseCategoryView> getCategoryView(@PathVariable Long category3Id);
 
