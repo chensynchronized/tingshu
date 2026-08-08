@@ -1,6 +1,7 @@
 package com.atguigu.tingshu.user.client;
 
 import com.atguigu.tingshu.common.result.Result;
+import com.atguigu.tingshu.model.user.VipServiceConfig;
 import com.atguigu.tingshu.user.client.impl.UserDegradeFeignClient;
 import com.atguigu.tingshu.vo.user.UserInfoVo;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -28,4 +29,6 @@ public interface UserFeignClient {
     @PostMapping("/userInfo/userIsPaidTrack/{userId}/{albumId}")
     public Result<Map<Long, Integer>> userIsPaidTrack(@PathVariable Long userId, @PathVariable Long albumId, @RequestBody List<Long> needCheckTrackIdList);
 
+    @GetMapping("/vipServiceConfig/getVipServiceConfig/{id}")
+    public Result<VipServiceConfig> getVipServiceConfig(@PathVariable Long id);
 }
