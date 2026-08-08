@@ -53,7 +53,7 @@ public class AlbumDegradeFeignClient implements AlbumFeignClient {
     }
 
     @Override
-    public Result<List<TrackInfo>> findPaidTrackInfoList(Long trackId, Long trackCount) {
+    public Result<List<TrackInfo>> findPaidTrackInfoList(Long trackId, Integer trackCount) {
         log.error("[专辑模块Feign调用]findPaidTrackInfoList异常");
         return null;
     }

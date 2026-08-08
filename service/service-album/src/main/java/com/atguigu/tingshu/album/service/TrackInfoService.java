@@ -78,5 +78,5 @@ public interface TrackInfoService extends IService<TrackInfo> {
      * @param trackCount 数量
      * @return
      */
-    List<TrackInfo> findPaidTrackInfoList(Long userId, Long trackId, Long trackCount);
+    List<TrackInfo> findPaidTrackInfoList(Long userId, Long trackId, Integer trackCount);
 }

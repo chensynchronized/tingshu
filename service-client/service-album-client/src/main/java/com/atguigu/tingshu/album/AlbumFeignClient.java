@@ -38,5 +38,5 @@ public interface AlbumFeignClient {
     @GetMapping("/category/findAllCategory1")
     public Result<List<BaseCategory1>> findAllCategory1();
     @GetMapping("/trackInfo/findPaidTrackInfoList/{trackId}/{trackCount}")
-    public Result<List<TrackInfo>> findPaidTrackInfoList(@PathVariable Long trackId, @PathVariable Long trackCount);
+    public Result<List<TrackInfo>> findPaidTrackInfoList(@PathVariable Long trackId, @PathVariable Integer trackCount);
 }

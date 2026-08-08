@@ -9,6 +9,7 @@ import com.atguigu.tingshu.common.constant.RedisConstant;
 import com.atguigu.tingshu.common.constant.SystemConstant;
 import com.atguigu.tingshu.common.execption.GuiguException;
 import com.atguigu.tingshu.model.album.AlbumInfo;
+import com.atguigu.tingshu.model.album.TrackInfo;
 import com.atguigu.tingshu.model.order.OrderInfo;
 import com.atguigu.tingshu.model.user.VipServiceConfig;
 import com.atguigu.tingshu.order.helper.SignHelper;
@@ -32,8 +33,10 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -145,6 +148,25 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
             }
         }else if (SystemConstant.ORDER_ITEM_TYPE_TRACK.equals(tradeVo.getItemType())){
             //4.处理订单选择页数据-声音
+            //4.1.获取待购买的声音列表
+            List<TrackInfo> waitBuyTrackList = albumFeignClient.findPaidTrackInfoList(tradeVo.getItemId(), tradeVo.getTrackCount()).getData();
+            Assert.notNull(waitBuyTrackList, "没有待购买的声音");
+            //4.2获取专辑信息
+            AlbumInfo albumInfo = albumFeignClient.getAlbumInfo(waitBuyTrackList.get(0).getAlbumId()).getData();
+            Assert.notNull(albumInfo, "专辑信息不存在");
+            //4.3.计算金额
+            BigDecimal price = albumInfo.getPrice();
+            originalAmount = price.multiply(new BigDecimal(tradeVo.getTrackCount()));
+            orderAmount = originalAmount;
+            //4.4.封装订单明细
+            waitBuyTrackList.stream().forEach(trackInfo -> {
+                OrderDetailVo orderDetailVo = new OrderDetailVo();
+                orderDetailVo.setItemId(trackInfo.getId());
+                orderDetailVo.setItemName(trackInfo.getTrackTitle());
+                orderDetailVo.setItemUrl(trackInfo.getCoverUrl());
+                orderDetailVo.setItemPrice(price);
+                orderDetailVoList.add(orderDetailVo);
+            });
         }
         //5.封装订单数据确认页对象OrderInfoVo
         orderInfoVo.setItemType(tradeVo.getItemType());

@@ -181,7 +181,7 @@ public class TrackInfoApiController {
 	@GuiGuLogin
 	@Operation(summary = "提供给订单服务渲染购买商品（声音）列表-查询当前用户待购买声音列表")
 	@GetMapping("/trackInfo/findPaidTrackInfoList/{trackId}/{trackCount}")
-	public Result<List<TrackInfo>> findPaidTrackInfoList(@PathVariable Long trackId,@PathVariable Long trackCount){
+	public Result<List<TrackInfo>> findPaidTrackInfoList(@PathVariable Long trackId,@PathVariable Integer trackCount){
 		Long userId = AuthContextHolder.getUserId();
 		List<TrackInfo> trackInfoList = trackInfoService.findPaidTrackInfoList(userId, trackId, trackCount);
 		return Result.ok(trackInfoList);

@@ -317,7 +317,7 @@ public class TrackInfoServiceImpl extends ServiceImpl<TrackInfoMapper, TrackInfo
 	}
 
 	@Override
-	public List<TrackInfo> findPaidTrackInfoList(Long userId, Long trackId, Long trackCount) {
+	public List<TrackInfo> findPaidTrackInfoList(Long userId, Long trackId, Integer trackCount) {
 		//1.根据声音id查询声音信息
 		TrackInfo trackInfo = trackInfoMapper.selectById(trackId);
 		Assert.notNull(trackInfo, "声音不存在");
