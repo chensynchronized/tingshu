@@ -73,6 +73,7 @@ public class UserAccountServiceImpl extends ServiceImpl<UserAccountMapper, UserA
 	 * @param accountDeductVo
 	 */
 	@Override
+	@Transactional(rollbackFor = Exception.class)
 	public void checkAndDeduct(AccountDeductVo accountDeductVo) {
 		int count = userAccountMapper.checkAndDeduct(accountDeductVo.getUserId(),accountDeductVo.getAmount());
 		if (count == 0){

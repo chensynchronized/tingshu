@@ -1,40 +1,50 @@
 package com.atguigu.tingshu.order.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.lang.Assert;
 import cn.hutool.core.util.IdUtil;
+import com.atguigu.tingshu.account.AccountFeignClient;
 import com.atguigu.tingshu.album.AlbumFeignClient;
 import com.atguigu.tingshu.common.constant.RedisConstant;
 import com.atguigu.tingshu.common.constant.SystemConstant;
 import com.atguigu.tingshu.common.execption.GuiguException;
+import com.atguigu.tingshu.common.result.Result;
+import com.atguigu.tingshu.common.result.ResultCodeEnum;
 import com.atguigu.tingshu.model.album.AlbumInfo;
 import com.atguigu.tingshu.model.album.TrackInfo;
+import com.atguigu.tingshu.model.order.OrderDerate;
+import com.atguigu.tingshu.model.order.OrderDetail;
 import com.atguigu.tingshu.model.order.OrderInfo;
 import com.atguigu.tingshu.model.user.VipServiceConfig;
 import com.atguigu.tingshu.order.helper.SignHelper;
 import com.atguigu.tingshu.order.mapper.OrderInfoMapper;
+import com.atguigu.tingshu.order.service.OrderDerateService;
+import com.atguigu.tingshu.order.service.OrderDetailService;
 import com.atguigu.tingshu.order.service.OrderInfoService;
 import com.atguigu.tingshu.user.client.UserFeignClient;
+import com.atguigu.tingshu.vo.account.AccountDeductVo;
 import com.atguigu.tingshu.vo.order.OrderDerateVo;
 import com.atguigu.tingshu.vo.order.OrderDetailVo;
 import com.atguigu.tingshu.vo.order.OrderInfoVo;
 import com.atguigu.tingshu.vo.order.TradeVo;
 import com.atguigu.tingshu.vo.user.UserInfoVo;
+import com.atguigu.tingshu.vo.user.UserPaidRecordVo;
 import com.baomidou.mybatisplus.core.toolkit.BeanUtils;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import io.seata.spring.annotation.GlobalTransactional;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -51,6 +61,12 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
     private RedisTemplate redisTemplate;
     @Resource
     private AlbumFeignClient albumFeignClient;
+    @Resource
+    private AccountFeignClient accountFeignClient;
+    @Resource
+    private OrderDetailService orderDetailService;
+    @Resource
+    private OrderDerateService orderDerateService;
 
     /**
      * 处理订单结算页面数据汇总（VIP会员、专辑、声音）
@@ -187,5 +203,97 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
         String sign = SignHelper.getSign(map);
         orderInfoVo.setSign(sign);
         return orderInfoVo;
+    }
+
+    @Override
+    @GlobalTransactional(rollbackFor = Exception.class)
+    public Map<String, String> submitOrder(OrderInfoVo orderInfoVo, Long userId) {
+        //1.校验防止订单重复提交
+        String key = RedisConstant.ORDER_TRADE_NO_PREFIX + userId;
+        String redisScript = "if(redis.call('get',KEYS[1])) == ARGV[1] then return redis.call('del',KEYS[1]) else return 0 end";
+        DefaultRedisScript<Boolean> script = new DefaultRedisScript<>();
+        script.setScriptText(redisScript);
+        script.setResultType(Boolean.class);
+        Boolean result =(Boolean) redisTemplate.execute(script, Arrays.asList(key), orderInfoVo.getTradeNo());
+        if (!result){
+            throw new GuiguException(400, "订单流水号异常");
+        }
+        //2.校验签名
+        Map<String, Object> map = BeanUtil.beanToMap(orderInfoVo, false, true);
+        map.remove("sign");
+        SignHelper.checkSign(map);
+        //3.保存订单，订单明细，优惠明细
+        OrderInfo orderInfo = this.saveOrderInfo(orderInfoVo, userId);
+        if (SystemConstant.ORDER_PAY_ACCOUNT.equals(orderInfoVo.getItemType())){
+            //4.扣减账户余额
+            AccountDeductVo accountDeductVo = new AccountDeductVo();
+            accountDeductVo.setUserId(userId);
+            accountDeductVo.setOrderNo(orderInfo.getOrderNo());
+            accountDeductVo.setAmount(orderInfo.getOrderAmount());
+            accountDeductVo.setContent(orderInfo.getOrderTitle());
+            Result checkAndDeductResult = accountFeignClient.checkAndDeduct(accountDeductVo);
+            if(checkAndDeductResult.getCode() != 200){
+                throw new GuiguException(ResultCodeEnum.ACCOUNT_LESS);
+            }
+            //5.虚拟发货
+            UserPaidRecordVo userPaidRecordVo = new UserPaidRecordVo();
+            userPaidRecordVo.setUserId(userId);
+            userPaidRecordVo.setOrderNo(orderInfo.getOrderNo());
+            userPaidRecordVo.setItemType(orderInfo.getItemType());
+            List<Long> itemIdList = orderInfo.getOrderDetailList().stream().map(OrderDetail::getItemId).collect(Collectors.toList());
+            userPaidRecordVo.setItemIdList(itemIdList);
+            Result savePaidRecordResult = userFeignClient.savePaidRecord(userPaidRecordVo);
+            if (savePaidRecordResult.getCode() != 200){
+                throw new GuiguException(400, "新增购买记录异常");
+            }
+            //6.修改订单状态
+            orderInfo.setOrderStatus(SystemConstant.ORDER_STATUS_PAID);
+            this.updateById(orderInfo);
+        }
+        //7.封装返回结果
+        Map<String, String> mapResult = new HashMap<>();
+        mapResult.put("orderNo", orderInfo.getOrderNo());
+        return mapResult;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public OrderInfo saveOrderInfo(OrderInfoVo orderInfoVo, Long userId) {
+        //1.保存订单信息
+        OrderInfo orderInfo = BeanUtil.copyProperties(orderInfoVo, OrderInfo.class);
+        orderInfo.setUserId(userId);
+        String orderNo = DateUtil.today().replace("-","") + IdUtil.getSnowflakeNextIdStr();
+        orderInfo.setOrderNo(orderNo);
+        orderInfo.setOrderStatus(SystemConstant.ORDER_STATUS_UNPAID);
+        String itemType = orderInfoVo.getItemType();
+        if (SystemConstant.ORDER_ITEM_TYPE_ALBUM.equals(itemType)){
+            orderInfo.setOrderTitle(userId+"购买专辑");
+        }else if (SystemConstant.ORDER_ITEM_TYPE_TRACK.equals(itemType)){
+            orderInfo.setOrderTitle(userId+"购买声音");
+        }else if (SystemConstant.ORDER_ITEM_TYPE_VIP.equals(itemType)){
+            orderInfo.setOrderTitle(userId+"购买VIP会员");
+        }
+        orderInfoMapper.insert(orderInfo);
+        //2.保存订单明细
+        List<OrderDetailVo> orderDetailVoList = orderInfoVo.getOrderDetailVoList();
+        if (CollUtil.isNotEmpty(orderDetailVoList)){
+            List<OrderDetail> orderDetailList = orderDetailVoList.stream().map(orderDetailVo -> {
+                OrderDetail orderDetail = BeanUtil.copyProperties(orderDetailVo, OrderDetail.class);
+                orderDetail.setOrderId(orderInfo.getId());
+                return orderDetail;
+            }).collect(Collectors.toList());
+            orderDetailService.saveBatch(orderDetailList);
+        }
+        //3.保存优惠明细
+        List<OrderDerateVo> orderDerateVoList = orderInfoVo.getOrderDerateVoList();
+        if (CollUtil.isNotEmpty(orderDerateVoList)){
+            List<OrderDerate> orderDerateList = orderDerateVoList.stream().map(orderDerateVo -> {
+                OrderDerate orderDerate = BeanUtil.copyProperties(orderDerateVo, OrderDerate.class);
+                orderDerate.setOrderId(orderInfo.getId());
+                return orderDerate;
+            }).collect(Collectors.toList());
+            orderDerateService.saveBatch(orderDerateList);
+        }
+        return orderInfo;
     }
 }
