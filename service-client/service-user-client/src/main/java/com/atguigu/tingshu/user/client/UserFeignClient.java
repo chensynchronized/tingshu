@@ -31,4 +31,6 @@ public interface UserFeignClient {
 
     @GetMapping("/vipServiceConfig/getVipServiceConfig/{id}")
     public Result<VipServiceConfig> getVipServiceConfig(@PathVariable Long id);
+    @GetMapping("/userInfo/isPaidAlbum/{albumId}")
+    public Result<Boolean> isPaidAlbum(@PathVariable Long albumId);
 }

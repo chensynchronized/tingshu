@@ -1,6 +1,8 @@
 package com.atguigu.tingshu.user.api;
 
+import com.atguigu.tingshu.common.login.GuiGuLogin;
 import com.atguigu.tingshu.common.result.Result;
+import com.atguigu.tingshu.common.util.AuthContextHolder;
 import com.atguigu.tingshu.user.service.UserInfoService;
 import com.atguigu.tingshu.vo.user.UserInfoVo;
 import io.swagger.v3.oas.annotations.Operation;
@@ -46,6 +48,19 @@ public class UserInfoApiController {
 	public Result<Map<Long, Integer>> userIsPaidTrack(@PathVariable Long userId, @PathVariable Long albumId, @RequestBody List<Long> needCheckTrackIdList){
 		Map<Long, Integer> resultMap = userInfoService.userIsPaidTrack(userId, albumId, needCheckTrackIdList);
 		return Result.ok(resultMap);
+	}
+	/**
+	 * 提供给订单服务调用，验证当前用户是否购买过专辑
+	 * @param albumId
+	 * @return
+	 */
+	@GuiGuLogin
+	@Operation(summary = "提供给订单服务调用，验证当前用户是否购买过专辑")
+	@GetMapping("/userInfo/isPaidAlbum/{albumId}")
+	public Result<Boolean> isPaidAlbum(@PathVariable Long albumId){
+		Long userId = AuthContextHolder.getUserId();
+		Boolean isPaidAlbum = userInfoService.isPaidAlbum(userId,albumId);
+		return Result.ok(isPaidAlbum);
 	}
 
 }

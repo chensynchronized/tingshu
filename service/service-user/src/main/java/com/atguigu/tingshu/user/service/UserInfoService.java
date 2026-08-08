@@ -42,5 +42,10 @@ public interface UserInfoService extends IService<UserInfo> {
      * @return data:{声音ID：购买结果}   结果：1（已购）0（未购买）
      */
     Map<Long, Integer> userIsPaidTrack(Long userId, Long albumId, List<Long> needCheckTrackIdList);
-
+    /**
+     * 验证当前用户是否购买过专辑
+     * @param albumId
+     * @return
+     */
+    Boolean isPaidAlbum(Long userId, Long albumId);
 }
