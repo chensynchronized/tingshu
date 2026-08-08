@@ -327,6 +327,7 @@ public class TrackInfoServiceImpl extends ServiceImpl<TrackInfoMapper, TrackInfo
 		//3.查询用户待购买声音列表
 		LambdaQueryWrapper<TrackInfo> queryWrapper = Wrappers.lambdaQuery(TrackInfo.class)
 				.eq(TrackInfo::getAlbumId, albumId)
+				.ge(TrackInfo::getOrderNum, trackInfo.getOrderNum())
 				.notIn(TrackInfo::getId, buyTrackIdList,CollUtil.isNotEmpty(buyTrackIdList))
 				.select(TrackInfo::getId, TrackInfo::getTrackTitle, TrackInfo::getCoverUrl, TrackInfo::getAlbumId)
 				.orderByAsc(TrackInfo::getOrderNum)
