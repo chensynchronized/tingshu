@@ -1,6 +1,7 @@
 package com.atguigu.tingshu.album.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.lang.Assert;
 import cn.hutool.core.util.ObjectUtil;
 import com.atguigu.tingshu.album.mapper.AlbumInfoMapper;
@@ -18,6 +19,7 @@ import com.atguigu.tingshu.query.album.TrackInfoQuery;
 import com.atguigu.tingshu.user.client.UserFeignClient;
 import com.atguigu.tingshu.vo.album.*;
 import com.atguigu.tingshu.vo.user.UserInfoVo;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -29,9 +31,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -248,6 +248,71 @@ public class TrackInfoServiceImpl extends ServiceImpl<TrackInfoMapper, TrackInfo
 	public TrackStatVo getTrackStatVo(Long trackId) {
 		TrackStatVo trackStatVo = trackStatMapper.getTrackStatVo(trackId);
 		return trackStatVo;
+
+	}
+
+	/**
+	 * map.put("name","本集"); // 显示文本
+	 * map.put("price",albumInfo.getPrice()); // 专辑声音对应的价格
+	 * map.put("trackCount",1); // 记录购买集数
+	 * @param userId
+	 * @param trackId 声音ID
+	 * @return
+	 */
+	@Override
+	public List<Map<String, Object>> findUserTrackPaidList(Long userId, Long trackId) {
+		//1.根据声音id查询专辑信息
+		TrackInfo trackInfo = trackInfoMapper.selectById(trackId);
+		Assert.notNull(trackInfo, "声音不存在");
+		//2.根据声音id查询可购买声音列表
+		LambdaQueryWrapper<TrackInfo> queryWrapper = Wrappers.lambdaQuery(TrackInfo.class)
+				.eq(TrackInfo::getAlbumId, trackInfo.getAlbumId())
+				.ge(TrackInfo::getOrderNum, trackInfo.getOrderNum());
+		List<TrackInfo> waitBuyTrackList = trackInfoMapper.selectList(queryWrapper);
+		if (CollUtil.isEmpty(waitBuyTrackList)){
+			throw new GuiguException(400,"专辑下没有符合条件的声音");
+		}
+		//3.根据专辑id和用户id远程调用用户服务，查询用户已购买声音id
+		List<Long> userPaidTrackIdList = userFeignClient.findUserPaidTrackList(trackInfo.getAlbumId()).getData();
+		if(CollUtil.isNotEmpty(userPaidTrackIdList)){
+			//4.获取未购买声音id列表
+			waitBuyTrackList = waitBuyTrackList.stream().filter(ti -> {
+				return !userPaidTrackIdList.contains(ti.getId());
+			}).collect(Collectors.toList());
+		}
+		//5.动态构建分级购买对象
+		if (CollUtil.isEmpty(waitBuyTrackList)){
+			throw new GuiguException(400,"专辑下没有未购买的声音");
+		}
+		ArrayList<Map<String, Object>> mapList = new ArrayList<>();
+		int size = waitBuyTrackList.size();
+		AlbumInfo albumInfo = albumInfoMapper.selectById(trackInfo.getAlbumId());
+		Assert.notNull(albumInfo, "专辑不存在");
+		BigDecimal price = albumInfo.getPrice();
+		Map<String, Object> currMap = new HashMap<>();
+		currMap.put("name","本集");
+		currMap.put("price",price );
+		currMap.put("trackCount",1);
+		mapList.add(currMap);
+
+		for(int i = 10;i <= 40 ;i+=10){
+			if (i < size){
+				Map<String, Object> map = new HashMap<>();
+				map.put("name", "后" + i + "集");
+				map.put("price", price.multiply(new BigDecimal(i)));
+				map.put("trackCount", i);
+				mapList.add(map);
+			}else {
+				//反之全集（动态构建后count集合）
+				Map<String, Object> map = new HashMap<>();
+				map.put("name", "后" + size + "集");
+				map.put("price", price.multiply(new BigDecimal(size)));
+				map.put("trackCount", size);
+				mapList.add(map);
+				break;
+			}
+		}
+		return mapList;
 
 	}
 }

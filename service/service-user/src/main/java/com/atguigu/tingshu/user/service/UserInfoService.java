@@ -48,4 +48,11 @@ public interface UserInfoService extends IService<UserInfo> {
      * @return
      */
     Boolean isPaidAlbum(Long userId, Long albumId);
+    /**
+     * 提供给专辑服务调用，获取当前用户已购声音集合
+     *
+     * @param albumId
+     * @return
+     */
+    List<Long> findUserPaidTrackList(Long userId, Long albumId);
 }

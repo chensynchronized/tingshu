@@ -63,5 +63,20 @@ public class UserInfoApiController {
 		return Result.ok(isPaidAlbum);
 	}
 
+	/**
+	 * 提供给专辑服务调用，获取当前用户已购声音集合
+	 *
+	 * @param albumId
+	 * @return
+	 */
+	@GuiGuLogin
+	@Operation(summary = "提供给专辑服务调用，获取当前用户已购声音集合")
+	@GetMapping("/userInfo/findUserPaidTrackList/{albumId}")
+	public Result<List<Long>> findUserPaidTrackList(@PathVariable Long albumId){
+		Long userId = AuthContextHolder.getUserId();
+		List<Long> userPaidTrackList = userInfoService.findUserPaidTrackList(userId, albumId);
+		return Result.ok(userPaidTrackList);
+	}
+
 }
 

@@ -39,4 +39,10 @@ public class UserDegradeFeignClient implements UserFeignClient {
         log.error("[用户服务]提供远程调用方法isPaidAlbum执行服务降级");
         return null;
     }
+
+    @Override
+    public Result<List<Long>> findUserPaidTrackList(Long albumId) {
+        log.error("[用户服务]提供远程调用方法getUserPaidTrackIdList执行服务降级");
+        return null;
+    }
 }

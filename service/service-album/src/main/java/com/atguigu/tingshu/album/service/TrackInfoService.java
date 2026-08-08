@@ -9,6 +9,9 @@ import com.atguigu.tingshu.vo.album.TrackStatVo;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 
+import java.util.List;
+import java.util.Map;
+
 public interface TrackInfoService extends IService<TrackInfo> {
     /**
      * 保存专辑下声音
@@ -60,5 +63,11 @@ public interface TrackInfoService extends IService<TrackInfo> {
      * @return
      */
     TrackStatVo getTrackStatVo(Long trackId);
-
+    /**
+     * 获取当前用户分集购买声音列表
+     *
+     * @param trackId 声音ID
+     * @return [{name:"本集", price:0.2, trackCount:1},{name:"后10集", price:2, trackCount:10},...,{name:"全集", price:*, trackCount:*}]
+     */
+    List<Map<String,Object>> findUserTrackPaidList(Long userId, Long trackId);
 }

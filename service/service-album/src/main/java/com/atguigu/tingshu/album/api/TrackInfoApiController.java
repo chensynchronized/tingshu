@@ -19,6 +19,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.Map;
 
 @Tag(name = "声音管理")
@@ -154,6 +155,21 @@ public class TrackInfoApiController {
 	public Result<TrackStatVo> getTrackStatVo(@PathVariable Long trackId){
 		TrackStatVo trackStatVo = trackInfoService.getTrackStatVo(trackId);
 		return Result.ok(trackStatVo);
+	}
+
+	/**
+	 * 获取当前用户分集购买声音列表
+	 *
+	 * @param trackId 声音ID
+	 * @return [{name:"本集", price:0.2, trackCount:1},{name:"后10集", price:2, trackCount:10},...,{name:"全集", price:*, trackCount:*}]
+	 */
+	@GuiGuLogin
+	@Operation(summary = "获取当前用户分集购买声音列表")
+	@GetMapping("/trackInfo/findUserTrackPaidList/{trackId}")
+	public Result<List<Map<String,Object>>> findUserTrackPaidList(@PathVariable Long trackId){
+		Long userId = AuthContextHolder.getUserId();
+		List<Map<String,Object>> mapList = trackInfoService.findUserTrackPaidList(userId, trackId);
+		return Result.ok(mapList);
 	}
 
 }
