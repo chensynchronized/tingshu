@@ -8,8 +8,10 @@ import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.ObjectUtil;
 import com.atguigu.tingshu.account.AccountFeignClient;
 import com.atguigu.tingshu.album.AlbumFeignClient;
+import com.atguigu.tingshu.common.constant.KafkaConstant;
 import com.atguigu.tingshu.common.constant.RedisConstant;
 import com.atguigu.tingshu.common.constant.SystemConstant;
+import com.atguigu.tingshu.common.delay.DelayMsgService;
 import com.atguigu.tingshu.common.execption.GuiguException;
 import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.common.result.ResultCodeEnum;
@@ -35,6 +37,7 @@ import com.atguigu.tingshu.vo.user.UserPaidRecordVo;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.BeanUtils;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import io.seata.spring.annotation.GlobalTransactional;
 import jakarta.annotation.Resource;
@@ -70,6 +73,8 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
     private OrderDetailService orderDetailService;
     @Resource
     private OrderDerateService orderDerateService;
+    @Autowired
+    private DelayMsgService delayMsgService;
 
     /**
      * 处理订单结算页面数据汇总（VIP会员、专辑、声音）
@@ -256,6 +261,8 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
         //7.封装返回结果
         Map<String, String> mapResult = new HashMap<>();
         mapResult.put("orderNo", orderInfo.getOrderNo());
+        //8.发送延迟消息
+        delayMsgService.sendDelayMessage(KafkaConstant.QUEUE_ORDER_CANCEL, orderInfo.getId().toString(), 30);
         return mapResult;
     }
 
@@ -319,6 +326,29 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
         }
         return null;
     }
+
+    @Override
+    public Page<OrderInfo> getUserOrderByPage(Page<OrderInfo> pageParam, Long userId) {
+        pageParam = orderInfoMapper.getUserOrderByPage1(pageParam,userId);
+        pageParam.getRecords().forEach(orderInfo -> {
+            orderInfo.setOrderStatusName(getOrderStatusName(orderInfo.getOrderStatus()));
+            orderInfo.setPayWayName(getPayWayName(orderInfo.getPayWay()));
+        });
+        return pageParam;
+    }
+
+    @Override
+    public void orderCanncal(Long valueOf) {
+        OrderInfo orderInfo = orderInfoMapper.selectById(valueOf);
+        if (ObjectUtil.isEmpty(orderInfo)){
+            throw new GuiguException(400, "订单不存在");
+        }
+        if (SystemConstant.ORDER_STATUS_UNPAID.equals(orderInfo.getOrderStatus())){
+            orderInfo.setOrderStatus(SystemConstant.ORDER_STATUS_CANCEL);
+            orderInfoMapper.updateById(orderInfo);
+        }
+    }
+
     private String getOrderStatusName(String orderStatus) {
         if (SystemConstant.ORDER_STATUS_UNPAID.equals(orderStatus)) {
             return "未支付";

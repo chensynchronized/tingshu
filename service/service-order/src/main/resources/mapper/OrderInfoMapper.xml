@@ -5,6 +5,35 @@
 <mapper namespace="com.atguigu.tingshu.order.mapper.OrderInfoMapper">
 
 
+    <!--自定义 结果集-->
+    <resultMap id="orderResultMap" type="com.atguigu.tingshu.model.order.OrderInfo" autoMapping="true">
+        <id column="id" property="id"></id>
+        <collection property="orderDetailList" ofType="com.atguigu.tingshu.model.order.OrderDetail" autoMapping="true">
+            <id column="order_detail_id" property="id"></id>
+        </collection>
+    </resultMap>
 
+    <select id="getUserOrderByPage" resultMap="orderResultMap">
+        select
+            oi.id,
+            oi.order_title,
+            oi.order_no,
+            oi.order_status,
+            oi.original_amount,
+            oi.order_amount,
+            oi.derate_amount,
+            oi.item_type,
+            oi.pay_way,
+            oi.create_time,
+            od.id order_detail_id,
+            od.item_id,
+            od.item_name,
+            od.item_url,
+            od.item_price
+        from order_info oi left join order_detail od
+                                     on od.order_id = oi.id
+        where user_id = #{userId} and od.is_deleted = 0
+        order by id desc
+    </select>
 </mapper>
 

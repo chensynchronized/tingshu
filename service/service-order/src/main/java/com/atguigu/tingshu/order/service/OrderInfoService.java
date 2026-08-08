@@ -3,6 +3,7 @@ package com.atguigu.tingshu.order.service;
 import com.atguigu.tingshu.model.order.OrderInfo;
 import com.atguigu.tingshu.vo.order.OrderInfoVo;
 import com.atguigu.tingshu.vo.order.TradeVo;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 
 import java.util.Map;
@@ -29,4 +30,9 @@ public interface OrderInfoService extends IService<OrderInfo> {
     OrderInfo saveOrderInfo(OrderInfoVo orderInfoVo, Long userId);
 
     OrderInfo getOrderInfo(String orderNo, Long userId);
+
+    Page<OrderInfo> getUserOrderByPage(Page<OrderInfo> pageParam, Long userId);
+
+    void orderCanncal(Long valueOf);
+
 }
