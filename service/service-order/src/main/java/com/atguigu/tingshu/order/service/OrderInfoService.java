@@ -27,4 +27,6 @@ public interface OrderInfoService extends IService<OrderInfo> {
      * @return 保存后订单对象
      */
     OrderInfo saveOrderInfo(OrderInfoVo orderInfoVo, Long userId);
+
+    OrderInfo getOrderInfo(String orderNo, Long userId);
 }

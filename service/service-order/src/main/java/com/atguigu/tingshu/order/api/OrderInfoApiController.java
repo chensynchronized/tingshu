@@ -3,16 +3,14 @@ package com.atguigu.tingshu.order.api;
 import com.atguigu.tingshu.common.login.GuiGuLogin;
 import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.common.util.AuthContextHolder;
+import com.atguigu.tingshu.model.order.OrderInfo;
 import com.atguigu.tingshu.order.service.OrderInfoService;
 import com.atguigu.tingshu.vo.order.OrderInfoVo;
 import com.atguigu.tingshu.vo.order.TradeVo;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
@@ -52,6 +50,20 @@ public class OrderInfoApiController {
 		Long userId = AuthContextHolder.getUserId();
 		Map<String,String> result = orderInfoService.submitOrder(orderInfoVo,userId);
 		return Result.ok(result);
+	}
+
+	/**
+	 * 查询当前用户指定订单信息
+	 *
+	 * @param orderNo
+	 * @return
+	 */
+	@GuiGuLogin
+	@GetMapping("/orderInfo/getOrderInfo/{orderNo}")
+	public Result<OrderInfo> getOrderInfo(@PathVariable String orderNo){
+		Long userId = AuthContextHolder.getUserId();
+		OrderInfo orderInfo = orderInfoService.getOrderInfo(orderNo,userId);
+		return Result.ok(orderInfo);
 	}
 
 }

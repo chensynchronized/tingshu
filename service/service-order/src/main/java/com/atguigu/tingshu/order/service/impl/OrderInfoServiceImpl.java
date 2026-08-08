@@ -5,6 +5,7 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.lang.Assert;
 import cn.hutool.core.util.IdUtil;
+import cn.hutool.core.util.ObjectUtil;
 import com.atguigu.tingshu.account.AccountFeignClient;
 import com.atguigu.tingshu.album.AlbumFeignClient;
 import com.atguigu.tingshu.common.constant.RedisConstant;
@@ -31,7 +32,9 @@ import com.atguigu.tingshu.vo.order.OrderInfoVo;
 import com.atguigu.tingshu.vo.order.TradeVo;
 import com.atguigu.tingshu.vo.user.UserInfoVo;
 import com.atguigu.tingshu.vo.user.UserPaidRecordVo;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.BeanUtils;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import io.seata.spring.annotation.GlobalTransactional;
 import jakarta.annotation.Resource;
@@ -295,5 +298,52 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
             orderDerateService.saveBatch(orderDerateList);
         }
         return orderInfo;
+    }
+
+    @Override
+    public OrderInfo getOrderInfo(String orderNo, Long userId) {
+        LambdaQueryWrapper<OrderInfo> queryWrapper = Wrappers.lambdaQuery(OrderInfo.class).eq(OrderInfo::getOrderNo, orderNo).eq(OrderInfo::getUserId, userId);
+        OrderInfo orderInfo = orderInfoMapper.selectOne(queryWrapper);
+        if(ObjectUtil.isNotEmpty(orderInfo)){
+            LambdaQueryWrapper<OrderDetail> detailQueryWrapper = Wrappers.lambdaQuery(OrderDetail.class).eq(OrderDetail::getOrderId, orderInfo.getId());
+            List<OrderDetail> orderDetailList = orderDetailService.list(detailQueryWrapper);
+            orderInfo.setOrderDetailList(orderDetailList);
+            LambdaQueryWrapper<OrderDerate> derateQueryWrapper = Wrappers.lambdaQuery(OrderDerate.class).eq(OrderDerate::getOrderId, orderInfo.getId());
+            List<OrderDerate> orderDerateList = orderDerateService.list(derateQueryWrapper);
+            orderInfo.setOrderDerateList(orderDerateList);
+            orderInfo.setOrderStatusName(getOrderStatusName(orderInfo.getOrderStatus()));
+            orderInfo.setPayWayName(getPayWayName(orderInfo.getPayWay()));
+            return orderInfo;
+
+
+        }
+        return null;
+    }
+    private String getOrderStatusName(String orderStatus) {
+        if (SystemConstant.ORDER_STATUS_UNPAID.equals(orderStatus)) {
+            return "未支付";
+        } else if (SystemConstant.ORDER_STATUS_PAID.equals(orderStatus)) {
+            return "已支付";
+        } else if (SystemConstant.ORDER_STATUS_CANCEL.equals(orderStatus)) {
+            return "取消";
+        }
+        return null;
+    }
+
+    /**
+     * 根据支付方式编号得到支付名称
+     *
+     * @param payWay
+     * @return
+     */
+    private String getPayWayName(String payWay) {
+        if (SystemConstant.ORDER_PAY_WAY_WEIXIN.equals(payWay)) {
+            return "微信";
+        } else if (SystemConstant.ORDER_PAY_ACCOUNT.equals(payWay)) {
+            return "余额";
+        } else if (SystemConstant.ORDER_PAY_WAY_ALIPAY.equals(payWay)) {
+            return "支付宝";
+        }
+        return "";
     }
 }
