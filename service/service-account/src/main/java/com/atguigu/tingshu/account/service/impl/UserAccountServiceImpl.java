@@ -4,8 +4,10 @@ import com.atguigu.tingshu.account.mapper.UserAccountDetailMapper;
 import com.atguigu.tingshu.account.mapper.UserAccountMapper;
 import com.atguigu.tingshu.account.service.UserAccountService;
 import com.atguigu.tingshu.common.constant.SystemConstant;
+import com.atguigu.tingshu.common.execption.GuiguException;
 import com.atguigu.tingshu.model.account.UserAccount;
 import com.atguigu.tingshu.model.account.UserAccountDetail;
+import com.atguigu.tingshu.vo.account.AccountDeductVo;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -65,5 +67,17 @@ public class UserAccountServiceImpl extends ServiceImpl<UserAccountMapper, UserA
 		UserAccount userAccount = userAccountMapper.selectOne(queryWrapper);
 		return userAccount.getAvailableAmount();
 
+	}
+	/**
+	 * 检查及扣减账户余额；增加账户变动日志
+	 * @param accountDeductVo
+	 */
+	@Override
+	public void checkAndDeduct(AccountDeductVo accountDeductVo) {
+		int count = userAccountMapper.checkAndDeduct(accountDeductVo.getUserId(),accountDeductVo.getAmount());
+		if (count == 0){
+			throw new GuiguException(400,"账户余额不足");
+		}
+		this.saveUserAccountDetail(accountDeductVo.getUserId(),accountDeductVo.getContent(), SystemConstant.ACCOUNT_TRADE_TYPE_MINUS, accountDeductVo.getAmount(), accountDeductVo.getOrderNo());
 	}
 }

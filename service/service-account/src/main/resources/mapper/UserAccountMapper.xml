@@ -11,6 +11,15 @@
 	<sql id="columns">
 		id,user_id,total_amount,lock_amount,available_amount,total_income_amount,total_pay_amount,create_time,update_time,is_deleted
 	</sql>
+	<update id="checkAndDeduct">
+		update user_account
+set totalAmount = totalAmount - #{amount},
+	availableAmount = availableAmount - #{amount},
+	totalPayAmount = totalPayAmount + #{amount}
+where userId = #{userId}
+and availableAmount >= #{amount}
+and isDeleted = 0
+	</update>
 
 </mapper>
 
