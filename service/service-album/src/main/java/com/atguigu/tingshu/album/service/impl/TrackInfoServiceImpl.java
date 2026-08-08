@@ -315,4 +315,28 @@ public class TrackInfoServiceImpl extends ServiceImpl<TrackInfoMapper, TrackInfo
 		return mapList;
 
 	}
+
+	@Override
+	public List<TrackInfo> findPaidTrackInfoList(Long userId, Long trackId, Long trackCount) {
+		//1.根据声音id查询声音信息
+		TrackInfo trackInfo = trackInfoMapper.selectById(trackId);
+		Assert.notNull(trackInfo, "声音不存在");
+		Long albumId = trackInfo.getAlbumId();
+		//2.根据用户id+专辑id查询用户已购买声音列表
+		List<Long> buyTrackIdList = userFeignClient.findUserPaidTrackList(albumId).getData();
+		//3.查询用户待购买声音列表
+		LambdaQueryWrapper<TrackInfo> queryWrapper = Wrappers.lambdaQuery(TrackInfo.class)
+				.eq(TrackInfo::getAlbumId, albumId)
+				.notIn(TrackInfo::getId, buyTrackIdList,CollUtil.isNotEmpty(buyTrackIdList))
+				.select(TrackInfo::getId, TrackInfo::getTrackTitle, TrackInfo::getCoverUrl, TrackInfo::getAlbumId)
+				.orderByAsc(TrackInfo::getOrderNum)
+				.last("limit" + trackCount);
+		List<TrackInfo> trackInfoList = trackInfoMapper.selectList(queryWrapper);
+		if(CollUtil.isEmpty(trackInfoList)){
+			throw new GuiguException(400,"没有找到符合条件的声音");
+		}
+		return trackInfoList;
+
+
+	}
 }
