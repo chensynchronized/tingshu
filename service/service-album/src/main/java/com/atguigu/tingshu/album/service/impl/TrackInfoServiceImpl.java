@@ -328,10 +328,10 @@ public class TrackInfoServiceImpl extends ServiceImpl<TrackInfoMapper, TrackInfo
 		LambdaQueryWrapper<TrackInfo> queryWrapper = Wrappers.lambdaQuery(TrackInfo.class)
 				.eq(TrackInfo::getAlbumId, albumId)
 				.ge(TrackInfo::getOrderNum, trackInfo.getOrderNum())
-				.notIn(TrackInfo::getId, buyTrackIdList,CollUtil.isNotEmpty(buyTrackIdList))
+				.notIn(CollUtil.isNotEmpty(buyTrackIdList),TrackInfo::getId, buyTrackIdList)
 				.select(TrackInfo::getId, TrackInfo::getTrackTitle, TrackInfo::getCoverUrl, TrackInfo::getAlbumId)
 				.orderByAsc(TrackInfo::getOrderNum)
-				.last("limit" + trackCount);
+				.last("limit " + trackCount);
 		List<TrackInfo> trackInfoList = trackInfoMapper.selectList(queryWrapper);
 		if(CollUtil.isEmpty(trackInfoList)){
 			throw new GuiguException(400,"没有找到符合条件的声音");

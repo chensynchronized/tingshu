@@ -58,7 +58,7 @@ public class GuiGuCacheAspect {
                 //5.查询数据库，存入缓存，数据库也没有则将空对象也存入缓存
                 data = joinPoint.proceed();
                 Long ttl = ObjectUtil.isNotEmpty(data) ? RedisConstant.ALBUM_TIMEOUT : RedisConstant.ALBUM_TEMPORARY_TIMEOUT;
-                redisTemplate.opsForValue().set(key,data,ttl);
+                redisTemplate.opsForValue().set(key,data,ttl, TimeUnit.SECONDS);
                 return data;
             }finally {
                 lock.unlock();
@@ -69,6 +69,62 @@ public class GuiGuCacheAspect {
             return joinPoint.proceed();
         }
     }
+//@SneakyThrows
+//@Around("@annotation(guiGuCache)")
+//public Object guiGuCacheAdvice(ProceedingJoinPoint pjp, GuiGuCache guiGuCache) {
+//    try {
+//        //1.优先从redis缓存中获取业务数据
+//        //1.1 构建业务数据key 形式：缓存注解中前缀+方法参数
+//        //1.1.1 获取注解前缀
+//        String prefix = guiGuCache.prefix();
+//        //1.1.2 获取执行目标方法参数
+//        String paramVal = "none";
+//        Object[] args = pjp.getArgs();
+//        if (args != null && args.length > 0) {
+//            paramVal = Arrays.asList(args).stream()
+//                    .map(arg -> arg.toString())
+//                    .collect(Collectors.joining(":"));
+//        }
+//        String dataKey = prefix + paramVal;
+//
+//        //1.2 查询redis缓存中业务数据
+//        Object resultObject = redisTemplate.opsForValue().get(dataKey);
+//        if (resultObject != null) {
+//            //1.3 命中缓存直接返回即可
+//            return resultObject;
+//        }
+//
+//        //2.获取分布式锁
+//        //2.1 构建锁key
+//        String lockKey = dataKey + RedisConstant.CACHE_LOCK_SUFFIX;
+//        //2.2 创建锁对象
+//        RLock lock = redissonClient.getLock(lockKey);
+//        //2.3 获取分布式锁 阻塞线程直到获取锁成功为止
+//        lock.lock();
+//
+//        //3.执行目标方法（查询数据库业务数据）将业务数据放入缓存
+//        try {
+//            //3.1 再次查询一次缓存:处于阻塞等待获取线程（终将获取锁成功）避免获取锁线程再次查库，这里再查一次缓存
+//            resultObject = redisTemplate.opsForValue().get(dataKey);
+//            if (resultObject != null) {
+//                return resultObject;
+//            }
+//            //3.2 未命中缓存，执行查询数据库(目标方法)
+//            resultObject = pjp.proceed();
+//            //3.3 将查询数据库结果放入缓存
+//            long ttl = resultObject == null ? RedisConstant.ALBUM_TEMPORARY_TIMEOUT : RedisConstant.ALBUM_TIMEOUT;
+//            redisTemplate.opsForValue().set(dataKey, resultObject, ttl, TimeUnit.SECONDS);
+//            return resultObject;
+//        } finally {
+//            //4.释放锁
+//            lock.unlock();
+//        }
+//    } catch (Throwable e) {
+//        log.info("自定义缓存切面异常：{}", e);
+//        //5.兜底处理方案：如果redis服务不可用，则执行查询数据库方法
+//        return pjp.proceed();
+//    }
+//}
 
 
 }

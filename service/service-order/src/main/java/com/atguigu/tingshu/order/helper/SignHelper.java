@@ -6,6 +6,7 @@ import com.atguigu.tingshu.common.util.MD5;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
 
+import java.math.BigDecimal;
 import java.util.Date;
 import java.util.Map;
 import java.util.TreeMap;
@@ -59,7 +60,11 @@ public class SignHelper {
         StringBuilder str = new StringBuilder();
         for (Map.Entry<String, Object> param : sorted.entrySet()) {
             //获取键值对中的值
-            str.append(param.getValue()).append("|");
+            Object value = param.getValue();
+            if (value instanceof BigDecimal) {
+                value = ((BigDecimal) value).setScale(2, java.math.RoundingMode.HALF_UP).toString();
+            }
+            str.append(value).append("|");
         }
         //最后连接signKey
         str.append(signKey);

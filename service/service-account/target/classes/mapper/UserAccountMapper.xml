@@ -13,12 +13,12 @@
 	</sql>
 	<update id="checkAndDeduct">
 		update user_account
-set totalAmount = totalAmount - #{amount},
-	availableAmount = availableAmount - #{amount},
-	totalPayAmount = totalPayAmount + #{amount}
-where userId = #{userId}
-and availableAmount >= #{amount}
-and isDeleted = 0
+		set total_amount = total_amount - #{amount},
+			available_amount = available_amount - #{amount},
+			total_pay_amount = total_pay_amount + #{amount}
+		where user_id = #{userId}
+		  and available_amount >= #{amount}
+		  and is_deleted = 0
 	</update>
 
 </mapper>

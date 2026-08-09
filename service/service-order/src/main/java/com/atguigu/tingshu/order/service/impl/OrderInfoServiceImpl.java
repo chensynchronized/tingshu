@@ -39,7 +39,6 @@ import com.baomidou.mybatisplus.core.toolkit.BeanUtils;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import io.seata.spring.annotation.GlobalTransactional;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -201,7 +200,7 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
         orderInfoVo.setOrderDerateVoList(orderDerateVoList);
         //6.生成交易流水号
         String key = RedisConstant.ORDER_TRADE_NO_PREFIX + userId;
-        String tradeNo = IdUtil.fastUUID();
+        String tradeNo = IdUtil.fastSimpleUUID();
         redisTemplate.opsForValue().set(key, tradeNo, RedisConstant.ORDER_TRADE_EXPIRE, TimeUnit.SECONDS);
         orderInfoVo.setTradeNo(tradeNo);
         //7.本次结算时间戳
@@ -214,11 +213,11 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
     }
 
     @Override
-    @GlobalTransactional(rollbackFor = Exception.class)
+//    @GlobalTransactional(rollbackFor = Exception.class)
     public Map<String, String> submitOrder(OrderInfoVo orderInfoVo, Long userId) {
         //1.校验防止订单重复提交
         String key = RedisConstant.ORDER_TRADE_NO_PREFIX + userId;
-        String redisScript = "if(redis.call('get',KEYS[1])) == ARGV[1] then return redis.call('del',KEYS[1]) else return 0 end";
+        String redisScript = "if(redis.call('get', KEYS[1]) == ARGV[1]) then return redis.call('del', KEYS[1]) else return 0 end";
         DefaultRedisScript<Boolean> script = new DefaultRedisScript<>();
         script.setScriptText(redisScript);
         script.setResultType(Boolean.class);
@@ -228,11 +227,11 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
         }
         //2.校验签名
         Map<String, Object> map = BeanUtil.beanToMap(orderInfoVo, false, true);
-        map.remove("sign");
+        map.remove("payWay");
         SignHelper.checkSign(map);
         //3.保存订单，订单明细，优惠明细
         OrderInfo orderInfo = this.saveOrderInfo(orderInfoVo, userId);
-        if (SystemConstant.ORDER_PAY_ACCOUNT.equals(orderInfoVo.getItemType())){
+        if (SystemConstant.ORDER_PAY_ACCOUNT.equals(orderInfoVo.getPayWay())){
             //4.扣减账户余额
             AccountDeductVo accountDeductVo = new AccountDeductVo();
             accountDeductVo.setUserId(userId);
@@ -293,6 +292,7 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
                 return orderDetail;
             }).collect(Collectors.toList());
             orderDetailService.saveBatch(orderDetailList);
+            orderInfo.setOrderDetailList(orderDetailList);
         }
         //3.保存优惠明细
         List<OrderDerateVo> orderDerateVoList = orderInfoVo.getOrderDerateVoList();
@@ -303,6 +303,7 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
                 return orderDerate;
             }).collect(Collectors.toList());
             orderDerateService.saveBatch(orderDerateList);
+            orderInfo.setOrderDerateList(orderDerateList);
         }
         return orderInfo;
     }

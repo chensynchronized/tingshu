@@ -26,7 +26,7 @@ public class GuiGuLoginAspect {
     @Autowired
     private RedisTemplate redisTemplate;
     @Around("execution(* com.atguigu.tingshu.*.api.*.*(..)) && @annotation(guiGuLogin)")
-    public Object loginAspect(ProceedingJoinPoint joinPoint, GuiGuLogin guiGuLogin){
+    public Object loginAspect(ProceedingJoinPoint joinPoint, GuiGuLogin guiGuLogin)throws Throwable{
         Object resultObject = new Object();
         log.info("前置通知...");
         //1.获取小程序端提交的token令牌
@@ -51,14 +51,15 @@ public class GuiGuLoginAspect {
         //5.执行业务方法
         try {
             resultObject = joinPoint.proceed();
-        } catch (Throwable e) {
-            e.printStackTrace();
+            return resultObject;
+        } finally {
+            //6.删除ThreadLocal中的用户信息
+            AuthContextHolder.removeUserId();
+            AuthContextHolder.removeUsername();
+            log.info("后置通知...");
         }
-        //6.删除ThreadLocal中的用户信息
-        AuthContextHolder.removeUserId();
-        AuthContextHolder.removeUsername();
-        log.info("后置通知...");
-        return resultObject;
+
+
 
     }
 }
