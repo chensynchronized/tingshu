@@ -1,10 +1,15 @@
 package com.atguigu.tingshu.account.api;
 
+
 import com.atguigu.tingshu.account.service.UserAccountService;
+import com.atguigu.tingshu.common.constant.SystemConstant;
 import com.atguigu.tingshu.common.login.GuiGuLogin;
 import com.atguigu.tingshu.common.result.Result;
 import com.atguigu.tingshu.common.util.AuthContextHolder;
+import com.atguigu.tingshu.model.account.RechargeInfo;
+import com.atguigu.tingshu.model.account.UserAccountDetail;
 import com.atguigu.tingshu.vo.account.AccountDeductVo;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,6 +68,38 @@ public class UserAccountApiController {
 	public Result rechargePaySuccess(@PathVariable String orderNo){
 		userAccountService.rechargePaySuccess(orderNo);
 		return Result.ok();
+	}
+
+	/**
+	 * 分页查询当前用户充值记录
+	 *
+	 * @param page
+	 * @param limit
+	 * @return
+	 */
+	@GuiGuLogin
+	@Operation(summary = "分页查询当前用户充值记录")
+	@GetMapping("/userAccount/findUserRechargePage/{page}/{limit}")
+	public Result<Page<RechargeInfo>> findUserRechargePage(@PathVariable Long page, @PathVariable Long limit){
+		Page<RechargeInfo> pageParam = new Page<RechargeInfo>(page, limit);
+		pageParam = userAccountService.findUserRechargePage(pageParam);
+		return Result.ok(pageParam);
+	}
+
+	/**
+	 * 分页查询当前用户消费记录
+	 *
+	 * @param page
+	 * @param limit
+	 * @return
+	 */
+	@GuiGuLogin
+	@Operation(summary = "分页查询当前用户消费记录")
+	@GetMapping("/userAccount/findUserConsumePage/{page}/{limit}")
+	public Result<Page<UserAccountDetail>> getUserConsumePage(@PathVariable int page, @PathVariable int limit){
+		Page<UserAccountDetail> pageParam = new Page<UserAccountDetail>(page, limit);
+		pageParam = userAccountService.getUserAccountDetailPage(pageParam);
+		return Result.ok(pageParam);
 	}
 
 }

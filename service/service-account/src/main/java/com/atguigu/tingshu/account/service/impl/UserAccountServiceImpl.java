@@ -6,6 +6,7 @@ import com.atguigu.tingshu.account.mapper.UserAccountMapper;
 import com.atguigu.tingshu.account.service.UserAccountService;
 import com.atguigu.tingshu.common.constant.SystemConstant;
 import com.atguigu.tingshu.common.execption.GuiguException;
+import com.atguigu.tingshu.common.util.AuthContextHolder;
 import com.atguigu.tingshu.model.account.RechargeInfo;
 import com.atguigu.tingshu.model.account.UserAccount;
 import com.atguigu.tingshu.model.account.UserAccountDetail;
@@ -13,6 +14,7 @@ import com.atguigu.tingshu.vo.account.AccountDeductVo;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Assert;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -104,6 +106,22 @@ public class UserAccountServiceImpl extends ServiceImpl<UserAccountMapper, UserA
 		this.saveUserAccountDetail(rechargeInfo.getUserId(), "充值", SystemConstant.PAYMENT_TYPE_RECHARGE, rechargeInfo.getRechargeAmount(), orderNo);
 		rechargeInfo.setRechargeStatus(SystemConstant.ORDER_STATUS_PAID);
 		rechargeInfoMapper.updateById(rechargeInfo);
+
+	}
+
+	@Override
+	public Page<RechargeInfo> findUserRechargePage(Page<RechargeInfo> pageParam) {
+		Long userId = AuthContextHolder.getUserId();
+		pageParam = userAccountMapper.getUserRechargePage(pageParam, userId, SystemConstant.PAYMENT_TYPE_RECHARGE);
+		return pageParam;
+	}
+
+	@Override
+	public Page<UserAccountDetail> getUserAccountDetailPage(Page<UserAccountDetail> pageParam) {
+		LambdaQueryWrapper<UserAccountDetail> queryWrapper = Wrappers.lambdaQuery(UserAccountDetail.class).eq(UserAccountDetail::getUserId, AuthContextHolder.getUserId())
+				.orderByDesc(UserAccountDetail::getCreateTime);
+		pageParam = userAccountDetailMapper.selectPage(pageParam,queryWrapper);
+		return pageParam;
 
 	}
 }
