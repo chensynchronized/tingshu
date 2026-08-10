@@ -22,4 +22,9 @@ public class AccountDegradeFeignClient implements AccountFeignClient {
         log.error("[账户服务]提供远程调用接口getRechargeInfo服务降级");
         return null;
     }
+    @Override
+    public Result rechargePaySuccess(String orderNo) {
+        log.error("[账户服务]执行服务降级方法：rechargePaySuccess");
+        return null;
+    }
 }

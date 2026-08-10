@@ -4,6 +4,7 @@ import com.atguigu.tingshu.model.account.UserAccount;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Update;
 
 import java.math.BigDecimal;
 
@@ -11,5 +12,7 @@ import java.math.BigDecimal;
 public interface UserAccountMapper extends BaseMapper<UserAccount> {
 
     int checkAndDeduct(@Param("userId") Long userId, @Param("amount") BigDecimal amount);
+    @Update("update user_account set recharge_amount = recharge_amount + #{rechargeAmount} where user_id = #{userId}")
+    int updateUserAccount(@Param("userId") Long userId, @Param("rechargeAmount") BigDecimal rechargeAmount);
 
 }

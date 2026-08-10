@@ -92,19 +92,7 @@ public class WxPayServiceImpl implements WxPayService {
 		if (transaction != null){
 			Transaction.TradeStateEnum tradeState = transaction.getTradeState();
 			if (tradeState == Transaction.TradeStateEnum.SUCCESS){
-				//2.发货
-				OrderInfo orderInfo = orderFeignClient.getOrderInfo(orderNo).getData();
-				Assert.notNull(orderInfo, "订单信息不存在");
-				UserPaidRecordVo userPaidRecordVo = new UserPaidRecordVo();
-				userPaidRecordVo.setUserId(orderInfo.getUserId());
-				userPaidRecordVo.setOrderNo(orderInfo.getOrderNo());
-				userPaidRecordVo.setItemType(orderInfo.getItemType());
-				List<Long> itemIdList = orderInfo.getOrderDetailList().stream().map(OrderDetail::getItemId).collect(Collectors.toList());
-				userPaidRecordVo.setItemIdList(itemIdList);
-				Result savePaidRecordResult = userFeignClient.savePaidRecord(userPaidRecordVo);
-				if (savePaidRecordResult.getCode() != 200){
-					throw new GuiguException(500, "新增购买记录异常");
-				}
+				paymentInfoService.updatePaymentInfoSuccess(transaction);
 				return true;
 			}
 		}

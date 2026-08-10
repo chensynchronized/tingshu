@@ -26,4 +26,6 @@ public interface AccountFeignClient {
     @GetMapping("/rechargeInfo/getRechargeInfo/{orderNo}")
     public Result<RechargeInfo> getRechargeInfo(@PathVariable String orderNo);
 
+    @GetMapping("/rechargeInfo/rechargePaySuccess/{orderNo}")
+    public Result rechargePaySuccess(@PathVariable String orderNo);
 }

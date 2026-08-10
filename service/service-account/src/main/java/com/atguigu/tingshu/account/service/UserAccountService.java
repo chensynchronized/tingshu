@@ -34,5 +34,10 @@ public interface UserAccountService extends IService<UserAccount> {
      * @param accountDeductVo
      */
     void checkAndDeduct(AccountDeductVo accountDeductVo);
-
+    /**
+     * 用户充值，支付成功后，充值业务处理
+     * @param orderNo
+     * @return
+     */
+    void rechargePaySuccess(String orderNo);
 }

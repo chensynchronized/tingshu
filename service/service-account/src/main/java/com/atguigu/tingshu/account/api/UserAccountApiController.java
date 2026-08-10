@@ -53,5 +53,17 @@ public class UserAccountApiController {
 		return Result.ok();
 	}
 
+	/**
+	 * 用户充值，支付成功后，充值业务处理
+	 * @param orderNo
+	 * @return
+	 */
+	@Operation(summary = "用户充值，支付成功后，充值业务处理")
+	@GetMapping("/rechargeInfo/rechargePaySuccess/{orderNo}")
+	public Result rechargePaySuccess(@PathVariable String orderNo){
+		userAccountService.rechargePaySuccess(orderNo);
+		return Result.ok();
+	}
+
 }
 

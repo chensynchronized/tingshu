@@ -1,14 +1,17 @@
 package com.atguigu.tingshu.account.service.impl;
 
+import com.atguigu.tingshu.account.mapper.RechargeInfoMapper;
 import com.atguigu.tingshu.account.mapper.UserAccountDetailMapper;
 import com.atguigu.tingshu.account.mapper.UserAccountMapper;
 import com.atguigu.tingshu.account.service.UserAccountService;
 import com.atguigu.tingshu.common.constant.SystemConstant;
 import com.atguigu.tingshu.common.execption.GuiguException;
+import com.atguigu.tingshu.model.account.RechargeInfo;
 import com.atguigu.tingshu.model.account.UserAccount;
 import com.atguigu.tingshu.model.account.UserAccountDetail;
 import com.atguigu.tingshu.vo.account.AccountDeductVo;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Assert;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +30,8 @@ public class UserAccountServiceImpl extends ServiceImpl<UserAccountMapper, UserA
 	private UserAccountMapper userAccountMapper;
 	@Autowired
 	private UserAccountDetailMapper userAccountDetailMapper;
+	@Autowired
+	private RechargeInfoMapper rechargeInfoMapper;
 
 	@Override
 	@Transactional(rollbackFor = Exception.class)
@@ -80,5 +85,25 @@ public class UserAccountServiceImpl extends ServiceImpl<UserAccountMapper, UserA
 			throw new GuiguException(400,"账户余额不足");
 		}
 		this.saveUserAccountDetail(accountDeductVo.getUserId(),accountDeductVo.getContent(), SystemConstant.ACCOUNT_TRADE_TYPE_MINUS, accountDeductVo.getAmount(), accountDeductVo.getOrderNo());
+	}
+
+	@Override
+	@Transactional(rollbackFor = Exception.class)
+	public void rechargePaySuccess(String orderNo) {
+		LambdaQueryWrapper<RechargeInfo> lambdaQueryWrapper = Wrappers.lambdaQuery(RechargeInfo.class).eq(RechargeInfo::getOrderNo, orderNo);
+		RechargeInfo rechargeInfo = rechargeInfoMapper.selectOne(lambdaQueryWrapper);
+		Assert.notNull(rechargeInfo, "充值订单不存在");
+		if (SystemConstant.ORDER_STATUS_PAID.equals(rechargeInfo.getRechargeStatus())){
+			log.info("订单已支付，无需重复处理");
+			return;
+		}
+		int count = userAccountMapper.updateUserAccount(rechargeInfo.getUserId(), rechargeInfo.getRechargeAmount());
+		if (count == 0){
+			throw new GuiguException(500, "充值异常");
+		}
+		this.saveUserAccountDetail(rechargeInfo.getUserId(), "充值", SystemConstant.PAYMENT_TYPE_RECHARGE, rechargeInfo.getRechargeAmount(), orderNo);
+		rechargeInfo.setRechargeStatus(SystemConstant.ORDER_STATUS_PAID);
+		rechargeInfoMapper.updateById(rechargeInfo);
+
 	}
 }

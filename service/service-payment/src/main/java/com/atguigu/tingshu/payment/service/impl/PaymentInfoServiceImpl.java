@@ -88,7 +88,7 @@ public class PaymentInfoServiceImpl extends ServiceImpl<PaymentInfoMapper, Payme
         paymentInfoMapper.updateById(paymentInfo);
         //3.修改订单/充值状态
         if (SystemConstant.ACCOUNT_TRADE_TYPE_MINUS.equals(paymentInfo.getPaymentType())){
-            Result result = accountFeignClient.orderPaySuccess(paymentInfo.getOrderNo(), SystemConstant.ORDER_STATUS_PAID);
+            Result result = accountFeignClient.rechargePaySuccess(paymentInfo.getOrderNo());
             if (result.getCode() != 200){
                 throw new GuiguException(500,"修改订单状态失败");
             }
