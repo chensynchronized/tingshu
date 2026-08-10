@@ -17,6 +17,5 @@ public interface UserAccountMapper extends BaseMapper<UserAccount> {
     @Update("update user_account set recharge_amount = recharge_amount + #{rechargeAmount} where user_id = #{userId}")
     int updateUserAccount(@Param("userId") Long userId, @Param("rechargeAmount") BigDecimal rechargeAmount);
 
-    Page<RechargeInfo> getUserRechargePage(Page<RechargeInfo> pageParam, @Param("userId") Long userId, @Param("tradeType") String tradeType);
 
 }

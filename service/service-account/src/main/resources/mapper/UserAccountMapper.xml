@@ -20,14 +20,6 @@
 		  and available_amount >= #{amount}
 		  and is_deleted = 0
 	</update>
-    <select id="getUserRechargePage" resultType="com.atguigu.tingshu.model.account.RechargeInfo">
-		select * from recharge_info
-		where user_id = #{userId}
-		  and trade_type = #{tradeType}
-		  and is_deleted = 0
-		order by create_time desc
-
-	</select>
 
 </mapper>
 

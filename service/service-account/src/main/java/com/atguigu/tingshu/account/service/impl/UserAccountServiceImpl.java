@@ -112,7 +112,8 @@ public class UserAccountServiceImpl extends ServiceImpl<UserAccountMapper, UserA
 	@Override
 	public Page<RechargeInfo> findUserRechargePage(Page<RechargeInfo> pageParam) {
 		Long userId = AuthContextHolder.getUserId();
-		pageParam = userAccountMapper.getUserRechargePage(pageParam, userId, SystemConstant.PAYMENT_TYPE_RECHARGE);
+		LambdaQueryWrapper<RechargeInfo> queryWrapper = Wrappers.lambdaQuery(RechargeInfo.class).eq(RechargeInfo::getUserId, userId).orderByDesc(RechargeInfo::getCreateTime);
+		pageParam = rechargeInfoMapper.selectPage(pageParam,queryWrapper);
 		return pageParam;
 	}
 
