@@ -35,4 +35,6 @@ public interface OrderInfoService extends IService<OrderInfo> {
 
     void orderCanncal(Long valueOf);
 
+    void orderPaySuccess(String orderNo);
+
 }

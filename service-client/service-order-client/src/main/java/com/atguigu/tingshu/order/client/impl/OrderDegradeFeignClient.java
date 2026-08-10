@@ -14,4 +14,9 @@ public class OrderDegradeFeignClient implements OrderFeignClient {
         log.error("[订单模块]提供远程调用getOrderInfo服务降级");
         return null;
     }
+    @Override
+    public Result orderPaySuccess(String orderNo) {
+        log.error("[订单服务]远程调用orderPaySuccess服务降级");
+        return null;
+    }
 }

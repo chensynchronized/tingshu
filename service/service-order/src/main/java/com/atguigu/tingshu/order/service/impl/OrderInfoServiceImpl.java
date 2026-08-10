@@ -242,17 +242,17 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
             if(checkAndDeductResult.getCode() != 200){
                 throw new GuiguException(ResultCodeEnum.ACCOUNT_LESS);
             }
-            //5.虚拟发货
-            UserPaidRecordVo userPaidRecordVo = new UserPaidRecordVo();
-            userPaidRecordVo.setUserId(userId);
-            userPaidRecordVo.setOrderNo(orderInfo.getOrderNo());
-            userPaidRecordVo.setItemType(orderInfo.getItemType());
-            List<Long> itemIdList = orderInfo.getOrderDetailList().stream().map(OrderDetail::getItemId).collect(Collectors.toList());
-            userPaidRecordVo.setItemIdList(itemIdList);
-            Result savePaidRecordResult = userFeignClient.savePaidRecord(userPaidRecordVo);
-            if (savePaidRecordResult.getCode() != 200){
-                throw new GuiguException(400, "新增购买记录异常");
-            }
+//            //5.虚拟发货
+//            UserPaidRecordVo userPaidRecordVo = new UserPaidRecordVo();
+//            userPaidRecordVo.setUserId(userId);
+//            userPaidRecordVo.setOrderNo(orderInfo.getOrderNo());
+//            userPaidRecordVo.setItemType(orderInfo.getItemType());
+//            List<Long> itemIdList = orderInfo.getOrderDetailList().stream().map(OrderDetail::getItemId).collect(Collectors.toList());
+//            userPaidRecordVo.setItemIdList(itemIdList);
+//            Result savePaidRecordResult = userFeignClient.savePaidRecord(userPaidRecordVo);
+//            if (savePaidRecordResult.getCode() != 200){
+//                throw new GuiguException(400, "新增购买记录异常");
+//            }
             //6.修改订单状态
             orderInfo.setOrderStatus(SystemConstant.ORDER_STATUS_PAID);
             this.updateById(orderInfo);
@@ -347,6 +347,29 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
         if (SystemConstant.ORDER_STATUS_UNPAID.equals(orderInfo.getOrderStatus())){
             orderInfo.setOrderStatus(SystemConstant.ORDER_STATUS_CANCEL);
             orderInfoMapper.updateById(orderInfo);
+        }
+    }
+
+    @Override
+    public void orderPaySuccess(String orderNo) {
+        //1.修改订单状态
+        LambdaQueryWrapper<OrderInfo> lambdaQueryWrapper = Wrappers.lambdaQuery(OrderInfo.class).eq(OrderInfo::getOrderNo, orderNo);
+        OrderInfo orderInfo = orderInfoMapper.selectOne(lambdaQueryWrapper);
+        if (SystemConstant.ORDER_STATUS_PAID.equals(orderInfo.getOrderStatus())){
+            return;
+        }
+        orderInfo.setOrderStatus(SystemConstant.ORDER_STATUS_PAID);
+        orderInfoMapper.updateById(orderInfo);
+        //2.发货
+        UserPaidRecordVo userPaidRecordVo = new UserPaidRecordVo();
+        userPaidRecordVo.setUserId(orderInfo.getUserId());
+        userPaidRecordVo.setOrderNo(orderInfo.getOrderNo());
+        userPaidRecordVo.setItemType(orderInfo.getItemType());
+        List<Long> itemIdList = orderInfo.getOrderDetailList().stream().map(OrderDetail::getItemId).collect(Collectors.toList());
+        userPaidRecordVo.setItemIdList(itemIdList);
+        Result savePaidRecordResult = userFeignClient.savePaidRecord(userPaidRecordVo);
+        if (savePaidRecordResult.getCode() != 200){
+            throw new GuiguException(500, "新增购买记录异常");
         }
     }
 

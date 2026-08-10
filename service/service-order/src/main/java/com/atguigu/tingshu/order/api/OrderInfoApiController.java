@@ -83,5 +83,17 @@ public class OrderInfoApiController {
 		return Result.ok(pageParam);
 	}
 
+	/**
+	 * 用户支付成功后，修改订单状态
+	 * @param orderNo 订单编号
+	 * @return
+	 */
+	@Operation(summary = "用户支付成功后，修改订单状态")
+	@GetMapping("/orderInfo/orderPaySuccess/{orderNo}")
+	public Result orderPaySuccess(@PathVariable String orderNo){
+		orderInfoService.orderPaySuccess(orderNo);
+		return Result.ok();
+	}
+
 }
 

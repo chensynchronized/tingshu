@@ -20,5 +20,8 @@ public interface OrderFeignClient {
     @GetMapping("/orderInfo/getOrderInfo/{orderNo}")
     public Result<OrderInfo> getOrderInfo(@PathVariable String orderNo);
 
+    @GetMapping("/orderInfo/orderPaySuccess/{orderNo}")
+    public Result orderPaySuccess(@PathVariable String orderNo);
+
 
 }
