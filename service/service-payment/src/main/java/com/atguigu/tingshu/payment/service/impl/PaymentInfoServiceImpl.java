@@ -49,14 +49,16 @@ public class PaymentInfoServiceImpl extends ServiceImpl<PaymentInfoMapper, Payme
         paymentInfo.setOrderNo(orderNo);
         paymentInfo.setPayWay(SystemConstant.ORDER_PAY_WAY_WEIXIN);
         paymentInfo.setPaymentStatus(SystemConstant.ORDER_STATUS_UNPAID);
+        //2.1.如果交易类型是充值，查询充值信息，如果充值信息不存在或支付状态不等于未支付，抛出异常
         if (SystemConstant.PAYMENT_TYPE_RECHARGE.equals(paymentType)){
             RechargeInfo rechargeInfo = accountFeignClient.getRechargeInfo(orderNo).getData();
             Assert.notNull(rechargeInfo, "充值信息不存在");
             if (!SystemConstant.ORDER_STATUS_UNPAID.equals(rechargeInfo.getRechargeStatus())){
-                throw new GuiguException(400,"充值订单状态错误");
+                throw new GuiguException(211,"充值订单状态错误");
             }
             paymentInfo.setAmount(rechargeInfo.getRechargeAmount());
             paymentInfo.setContent(rechargeInfo.getUserId() + "充值：" + rechargeInfo.getRechargeAmount());
+            //2.2.如果交易类型是订单，查询订单信息，如果订单信息不存在或支付状态不等于未支付，抛出异常
         }else if (SystemConstant.PAYMENT_TYPE_ORDER.equals(paymentType)){
             OrderInfo orderInfo = orderFeignClient.getOrderInfo(orderNo).getData();
             Assert.notNull(orderInfo, "订单信息不存在");

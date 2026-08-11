@@ -14,7 +14,8 @@
 		<module>service-user-client</module>
 		<module>service-account-client</module>
 		<module>service-order-client</module>
-	</modules>
+        <module>service-search-client</module>
+    </modules>
 
 	<artifactId>service-client</artifactId>
 	<packaging>pom</packaging>
