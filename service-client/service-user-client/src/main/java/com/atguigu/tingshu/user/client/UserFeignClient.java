@@ -46,4 +46,11 @@ public interface UserFeignClient {
      */
     @PostMapping("/userInfo/savePaidRecord")
     public Result savePaidRecord(@RequestBody UserPaidRecordVo userPaidRecordVo);
+
+    /**
+     * 更新Vip到期失效状态
+     * @return
+     */
+    @GetMapping("updateVipExpireStatus")
+    public Result updateVipExpireStatus();
 }

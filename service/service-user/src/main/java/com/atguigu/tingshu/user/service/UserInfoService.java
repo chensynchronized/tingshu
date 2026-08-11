@@ -62,4 +62,9 @@ public interface UserInfoService extends IService<UserInfo> {
      * @param userPaidRecordVo
      */
     void savePaidRecord(UserPaidRecordVo userPaidRecordVo);
+
+    void updateVipExpireStatus();
+
+
+
 }

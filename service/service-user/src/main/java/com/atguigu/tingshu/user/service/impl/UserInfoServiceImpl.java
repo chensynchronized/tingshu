@@ -295,4 +295,18 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> i
 
 	}
 
+	@Override
+	public void updateVipExpireStatus() {
+		LambdaQueryWrapper<UserInfo> queryWrapper = Wrappers.lambdaQuery(UserInfo.class)
+				.eq(UserInfo::getIsVip, 1)
+				.le(UserInfo::getVipExpireTime, DateUtil.beginOfDay(new Date()));
+		List<UserInfo> userInfoList = userInfoMapper.selectList(queryWrapper);
+		if (CollUtil.isNotEmpty(userInfoList)){
+			userInfoList.stream().forEach(userInfo -> {
+				userInfo.setIsVip(0);
+			});
+			this.updateBatchById(userInfoList);
+		}
+	}
+
 }

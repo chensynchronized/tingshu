@@ -97,6 +97,12 @@ public class UserInfoApiController {
 		userInfoService.savePaidRecord(userPaidRecordVo);
 		return Result.ok();
 	}
+	@Operation(summary = "更新Vip到期失效状态")
+	@GetMapping("updateVipExpireStatus")
+	public Result updateVipExpireStatus() {
+		userInfoService.updateVipExpireStatus();
+		return Result.ok();
+	}
 
 }
 
